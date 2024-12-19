@@ -6,9 +6,8 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /RobotModel1
         - /TF1/Frames1
-        - /LaserScan1/Topic1
-        - /Map1
         - /Map1/Status1
         - /Map1/Topic1
         - /Map1/Update Topic1
@@ -66,7 +65,7 @@ Visualization Manager:
         Value: /robot_description
       Enabled: true
       Links:
-        All Links Enabled: true
+        All Links Enabled: false
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
@@ -89,22 +88,21 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         pioneer3dx_caster_hubcap:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         pioneer3dx_caster_swivel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         pioneer3dx_caster_wheel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         pioneer3dx_front_sonar:
           Alpha: 1
           Show Axes: false
@@ -116,6 +114,11 @@ Visualization Manager:
           Show Trail: false
           Value: true
         pioneer3dx_left_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pioneer3dx_real_base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -151,9 +154,7 @@ Visualization Manager:
         hokuyo_laser:
           Value: true
         hokuyo_laser_mount:
-          Value: true
-        map:
-          Value: true
+          Value: false
         pioneer3dx_back_sonar:
           Value: false
         pioneer3dx_base_link:
@@ -162,8 +163,6 @@ Visualization Manager:
           Value: false
         pioneer3dx_caster_swivel:
           Value: false
-        pioneer3dx_caster_wheel:
-          Value: true
         pioneer3dx_front_sonar:
           Value: false
         pioneer3dx_left_hub:
@@ -172,6 +171,8 @@ Visualization Manager:
           Value: true
         pioneer3dx_odom:
           Value: true
+        pioneer3dx_real_base_link:
+          Value: false
         pioneer3dx_right_hub:
           Value: false
         pioneer3dx_right_wheel:
@@ -184,28 +185,23 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          {}
         pioneer3dx_odom:
           pioneer3dx_base_link:
-            pioneer3dx_back_sonar:
-              {}
-            pioneer3dx_caster_swivel:
-              pioneer3dx_caster_wheel:
-                pioneer3dx_caster_hubcap:
-                  {}
-            pioneer3dx_front_sonar:
-              {}
-            pioneer3dx_left_hub:
-              pioneer3dx_left_wheel:
+            pioneer3dx_real_base_link:
+              pioneer3dx_back_sonar:
                 {}
-            pioneer3dx_right_hub:
-              pioneer3dx_right_wheel:
+              pioneer3dx_front_sonar:
                 {}
-            pioneer3dx_top_plate:
-              hokuyo_laser_mount:
-                hokuyo_laser:
+              pioneer3dx_left_hub:
+                pioneer3dx_left_wheel:
                   {}
+              pioneer3dx_right_hub:
+                pioneer3dx_right_wheel:
+                  {}
+              pioneer3dx_top_plate:
+                hokuyo_laser_mount:
+                  hokuyo_laser:
+                    {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -223,7 +219,7 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 4096
+      Max Intensity: 0
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: LaserScan
@@ -404,7 +400,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: map
+    Fixed Frame: pioneer3dx_odom
     Frame Rate: 30
   Name: root
   Tools:
@@ -447,25 +443,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 30.14935874938965
+      Distance: 3.7815561294555664
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -2.8696036338806152
-        Y: -0.3401124179363251
-        Z: 3.3000388145446777
+        X: -0.04051472619175911
+        Y: -0.14016439020633698
+        Z: -0.3359189033508301
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7021219730377197
+      Pitch: 0.3347962200641632
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.164564847946167
+      Yaw: 4.649552822113037
     Saved: ~
 Window Geometry:
   Displays:
@@ -473,7 +469,7 @@ Window Geometry:
   Height: 997
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000029a0000034bfc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730200000780000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000034b000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000034bfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003b0000034b000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007740000003efc0100000002fb0000000800540069006d00650100000000000007740000025300fffffffb0000000800540069006d00650100000000000004500000000000000000000003bf0000034b00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000003720000034bfc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730200000780000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000034b000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c0000026100000001000001000000034bfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003b0000034b000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007740000003efc0100000002fb0000000800540069006d00650100000000000007740000025300fffffffb0000000800540069006d00650100000000000004500000000000000000000002f60000034b00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -483,5 +479,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1908
-  X: 1894
-  Y: -5
+  X: 1920
+  Y: 0

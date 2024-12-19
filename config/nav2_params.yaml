@@ -1,44 +1,49 @@
+# AMCL (Adaptive Monte Carlo Localization)
+# Handles robot localization using particle filter to track robot's pose
 amcl:
   ros__parameters:
-    use_sim_time: True
-    alpha1: 0.2
-    alpha2: 0.2
-    alpha3: 0.2
-    alpha4: 0.2
-    alpha5: 0.2
-    base_frame_id: "pioneer3dx_base_link"
-    beam_skip_distance: 0.5
-    beam_skip_error_threshold: 0.9
-    beam_skip_threshold: 0.3
-    do_beamskip: false
-    global_frame_id: "map"
-    lambda_short: 0.1
-    laser_likelihood_max_dist: 2.0
-    laser_max_range: 100.0
-    laser_min_range: -1.0
-    laser_model_type: "likelihood_field"
-    max_beams: 60
-    max_particles: 2000
-    min_particles: 500
-    odom_frame_id: "pioneer3dx_odom"
-    pf_err: 0.05
-    pf_z: 0.99
-    recovery_alpha_fast: 0.0
-    recovery_alpha_slow: 0.0
-    resample_interval: 1
-    robot_model_type: "nav2_amcl::DifferentialMotionModel"
-    save_pose_rate: 0.5
-    sigma_hit: 0.2
-    tf_broadcast: true
-    transform_tolerance: 1.0
-    update_min_a: 0.2
-    update_min_d: 0.25
-    z_hit: 0.5
-    z_max: 0.05
-    z_rand: 0.5
-    z_short: 0.05
+    use_sim_time: True  # Use simulation time instead of real time
+    alpha1: 0.2  # Rotation noise from rotation
+    alpha2: 0.2  # Rotation noise from translation
+    alpha3: 0.2  # Translation noise from translation
+    alpha4: 0.2  # Translation noise from rotation
+    alpha5: 0.2  # Translation noise from translation (additional)
+    base_frame_id: "pioneer3dx_base_link"  # Robot's base frame
+    beam_skip_distance: 0.5  # Distance for skipping beams in laser scan
+    beam_skip_error_threshold: 0.9  # Error threshold for beam skipping
+    beam_skip_threshold: 0.3  # Threshold for beam skipping
+    do_beamskip: false  # Enable/disable beam skipping
+    global_frame_id: "map"  # Global reference frame
+    lambda_short: 0.1  # Exponential decay parameter for short readings
+    laser_likelihood_max_dist: 2.0  # Maximum distance for laser likelihood
+    laser_max_range: 100.0  # Maximum laser range to use
+    laser_min_range: 0.05  # Minimum laser range to use
+    laser_model_type: "likelihood_field"  # Type of laser scanner model
+    max_beams: 60  # Maximum number of beams to use
+    max_particles: 2000  # Maximum number of particles in filter
+    min_particles: 500  # Minimum number of particles in filter
+    odom_frame_id: "pioneer3dx_odom"  # Odometry frame
+    pf_err: 0.05  # Particle filter error
+    pf_z: 0.99  # Particle filter z value
+    recovery_alpha_fast: 0.0  # Fast recovery parameter
+    recovery_alpha_slow: 0.0  # Slow recovery parameter
+    resample_interval: 1  # How often to resample particles
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"  # Robot motion model type
+    save_pose_rate: 0.5  # Rate to save robot's pose
+    sigma_hit: 0.2  # Standard deviation for Gaussian model
+    tf_broadcast: true  # Broadcast transforms
+    transform_tolerance: 1.0  # Transform timeout tolerance
+    update_min_a: 0.2  # Minimum rotation for filter update
+    update_min_d: 0.25  # Minimum translation for filter update
+    z_hit: 0.5  # Mix weight for hit part of model
+    z_max: 0.05  # Mix weight for max range part of model
+    z_rand: 0.5  # Mix weight for random part of model
+    z_short: 0.05  # Mix weight for short part of model
     scan_topic: scan
 
+
+# BT Navigator (Behavior Tree Navigator)
+# Manages navigation tasks using behavior trees for decision making and execution
 bt_navigator:
   ros__parameters:
     use_sim_time: True
@@ -101,14 +106,18 @@ bt_navigator:
       - nav2_drive_on_heading_cancel_bt_node
       - nav2_is_battery_charging_condition_bt_node
 
+
 bt_navigator_navigate_through_poses_rclcpp_node:
   ros__parameters:
     use_sim_time: True
+
 
 bt_navigator_navigate_to_pose_rclcpp_node:
   ros__parameters:
     use_sim_time: True
 
+# Controller Server
+# Handles local path planning and obstacle avoidance using DWB (Dynamic Window Approach)
 controller_server:
   ros__parameters:
     use_sim_time: True
@@ -145,7 +154,7 @@ controller_server:
       min_vel_y: 0.0
       max_vel_x: 0.26
       max_vel_y: 0.0
-      max_vel_theta: 1.0
+      max_vel_theta: 2.0
       min_speed_xy: 0.0
       max_speed_xy: 0.26
       min_speed_theta: 0.0
@@ -176,10 +185,12 @@ controller_server:
       GoalAlign.forward_point_distance: 0.1
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
-      RotateToGoal.scale: 32.0
-      RotateToGoal.slowing_factor: 5.0
+      RotateToGoal.scale: 4.0
+      RotateToGoal.slowing_factor: 10.0
       RotateToGoal.lookahead_time: -1.0
 
+# Local Costmap
+# Maintains a local view of obstacles around the robot for immediate navigation
 local_costmap:
   local_costmap:
     ros__parameters:
@@ -223,6 +234,8 @@ local_costmap:
         map_subscribe_transient_local: True
       always_send_full_costmap: True
 
+# Global Costmap
+# Maintains the full map of the environment for global path planning
 global_costmap:
   global_costmap:
     ros__parameters:
@@ -258,6 +271,8 @@ global_costmap:
         inflation_radius: 0.55
       always_send_full_costmap: True
 
+# Map Server
+# Provides the static map data to the navigation stack
 map_server:
   ros__parameters:
     use_sim_time: True
@@ -265,6 +280,8 @@ map_server:
     # To use in yaml, remove the default "map" value in the tb3_simulation_launch.py file & provide full path to map below.
     yaml_filename: ""
 
+# Map Saver
+# Saves maps created during mapping sessions
 map_saver:
   ros__parameters:
     use_sim_time: True
@@ -273,6 +290,8 @@ map_saver:
     occupied_thresh_default: 0.65
     map_subscribe_transient_local: True
 
+# Planner Server
+# Handles global path planning using NavFn or other planning algorithms
 planner_server:
   ros__parameters:
     expected_planner_frequency: 20.0
@@ -284,6 +303,8 @@ planner_server:
       use_astar: false
       allow_unknown: true
 
+# Smoother Server
+# Smooths planned paths to create more natural robot movements
 smoother_server:
   ros__parameters:
     use_sim_time: True
@@ -294,6 +315,8 @@ smoother_server:
       max_its: 1000
       do_refinement: True
 
+# Behavior Server
+# Manages recovery behaviors like spinning, backing up, or waiting
 behavior_server:
   ros__parameters:
     costmap_topic: local_costmap/costmap_raw
@@ -315,14 +338,18 @@ behavior_server:
     transform_tolerance: 0.1
     use_sim_time: true
     simulate_ahead_time: 2.0
-    max_rotational_vel: 1.0
+    max_rotational_vel: 2.0
     min_rotational_vel: 0.4
     rotational_acc_lim: 3.2
 
+# Robot State Publisher
+# Publishes robot's transform tree
 robot_state_publisher:
   ros__parameters:
     use_sim_time: True
 
+# Waypoint Follower
+# Manages navigation through sequences of waypoints
 waypoint_follower:
   ros__parameters:
     use_sim_time: True
@@ -334,17 +361,19 @@ waypoint_follower:
       enabled: True
       waypoint_pause_duration: 200
 
+# Velocity Smoother
+# Smooths velocity commands for more stable robot motion
 velocity_smoother:
   ros__parameters:
     use_sim_time: True
     smoothing_frequency: 20.0
-    scale_velocities: False
+    scale_velocities: True
     feedback: "OPEN_LOOP"
-    max_velocity: [0.26, 0.0, 1.0]
-    min_velocity: [-0.26, 0.0, -1.0]
-    max_accel: [2.5, 0.0, 3.2]
-    max_decel: [-2.5, 0.0, -3.2]
-    odom_topic: "odom"
+    max_velocity: [0.26, 0.0, 0.05]
+    min_velocity: [-0.26, 0.0, -0.05]
+    max_accel: [2.5, 0.0, 0.1]
+    max_decel: [-2.5, 0.0, -0.1]
+    odom_topic: "/differential_controller/odom"
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
