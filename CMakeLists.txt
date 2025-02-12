@@ -15,10 +15,22 @@ find_package(rclpy REQUIRED)
 find_package(slam_toolbox REQUIRED)
 find_package(navigation2 REQUIRED)
 find_package(galax_bringup REQUIRED)
+# find_package(custom_interfaces REQUIRED)
 
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
+
+# # CPP
+# # Add the action client executable
+# ament_auto_add_executable(path_planner_server
+#   src/path_planner_node.cpp
+#   # src/path_planner_class.cpp
+#   ) #dependency
+# # Install the executable
+# install(TARGETS path_planner_server
+#   DESTINATION lib/${PROJECT_NAME}
+# )
 
 # COPY A PARTICULAR FOLDER TO THE INSTALL DIRECTORY
 # Install config dependencies
@@ -32,6 +44,17 @@ install(
 )
 
 
-# LAUNCH
 # Install launchfile
-ament_auto_package(INSTALL_TO_SHARE launch)
+install(
+  DIRECTORY
+    launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  set(ament_cmake_copyright_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_package()
