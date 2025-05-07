@@ -28,6 +28,8 @@ from nav2_common.launch import RewrittenYaml
 
 def generate_launch_description():
     # Get the launch directory
+    navigation_package_dir = get_package_share_directory('galax_navigation')
+    launch_dir = os.path.join(navigation_package_dir, 'launch')
     bringup_dir = get_package_share_directory('nav2_bringup')
 
     namespace = LaunchConfiguration('namespace')
@@ -75,6 +77,7 @@ def generate_launch_description():
 
     declare_map_yaml_cmd = DeclareLaunchArgument(
         'map',
+        default_value=os.path.join(navigation_package_dir, 'map', 'uni_map4.yaml'),
         description='Full path to map yaml file to load')
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(

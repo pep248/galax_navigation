@@ -96,7 +96,7 @@ def generate_launch_description():
 
     declare_map_yaml_cmd = DeclareLaunchArgument(
         'map',
-        default_value=os.path.join(navigation_package_dir, 'map', 'uni_map4.yaml'),
+        default_value=os.path.join(navigation_package_dir, 'map', 'uni_map5.yaml'),
         description='Full path to map yaml file to load')
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
