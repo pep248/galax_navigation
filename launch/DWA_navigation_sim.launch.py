@@ -173,6 +173,13 @@ def generate_launch_description():
             'launch_sim_robot.launch.py'
         )]))
     
+    path_planning = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory('path_planning_package'),
+            'launch', 
+            'path_planning_service_cpp.launch.py'
+        )]))
+    
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
@@ -206,6 +213,7 @@ def generate_launch_description():
     ld.add_action(bringup_cmd_group)
     
     ld.add_action(robot_bringup)
+    ld.add_action(path_planning)
     ld.add_action(rviz_node)
 
     return ld
