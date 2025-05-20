@@ -1,45 +1,153 @@
 #include <galax_navigation/DWA_class.hpp>
 
-DWA_Node::DWA_Node()
+DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
 {   
     // Initialize parameter listener
     this->dwa_parameters_listener_ = std::make_shared<dwa_parameters::ParamListener>(this->shared_from_this());
     this->dwa_parameters_ = std::make_shared<dwa_parameters::DWA_parameters>(this->shared_from_this());
 
     // Initialize DWA parameters
-    this->dwa_dynamic_parameters_ = std::make_shared<DWA_parameters_class>();
+    this->robot_parameters_instance_ = std::make_shared<DwaParametersClass>();
+
+    // Initialize subscribers
+    DWA_subscription_ = this->create_subscription<custom_interfaces::msg::DWA>(
+        "dwa_parameters", 
+        10,
+        std::bind(&DwaNode::dwaCallback, this, std::placeholders::_1));
+
+    // Initialize publishers
+    cmd_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>(
+        "cmd_vel", 
+        rclcpp::QoS(10));
+
+    // Initialize timer -> TODO -> create the timer once the parametsrs have been loaded
+    initial_check_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(100),
+        std::bind(&DwaNode::initialCheckTimerCallback, this));
 }
 
-void DWA_Node::get_params()
+void DwaNode::get_params()
 {
-    dwa_parameters_instance->max_speed = dwa_parameters_->max_speed;
-    dwa_parameters_instance->min_speed = dwa_parameters_->min_speed;
-    dwa_parameters_instance->max_accel = dwa_parameters_->max_accel;
-    dwa_parameters_instance->max_decel = dwa_parameters_->max_decel;
-    dwa_parameters_instance->max_yaw_rate = dwa_parameters_->max_yaw_rate;
-    dwa_parameters_instance->min_yaw_rate = dwa_parameters_->min_yaw_rate;
-    dwa_parameters_instance->max_yaw_accel = dwa_parameters_->max_yaw_accel;
-    dwa_parameters_instance->max_yaw_decel = dwa_parameters_->max_yaw_decel;
-    dwa_parameters_instance->min_turning_radius = dwa_parameters_->min_turning_radius;
-    dwa_parameters_instance->heading_coeff = dwa_parameters_->heading_coeff;
-    dwa_parameters_instance->obstacle_coeff = dwa_parameters_->obstacle_coeff;
-    dwa_parameters_instance->velocity_coeff = dwa_parameters_->velocity_coeff;
-    dwa_parameters_instance->energy_coeff = dwa_parameters_->energy_coeff;
-    dwa_parameters_instance->time_horizon = dwa_parameters_->time_horizon;
-    dwa_parameters_instance->velocity_samples = dwa_parameters_->velocity_samples;
+    // DWA parameters
+    this->dwa_parameters_instance_->alpha        = dwa_parameters_->DWA_params.alpha;
+    this->dwa_parameters_instance_->beta         = dwa_parameters_->DWA_params.beta;
+    this->dwa_parameters_instance_->delta        = dwa_parameters_->DWA_params.delta;
+    this->dwa_parameters_instance_->gamma        = dwa_parameters_->DWA_params.gamma;
+    this->dwa_parameters_instance_->time_horizon = dwa_parameters_->DWA_params.time_horizon;
+    this->dwa_parameters_instance_->n_samples    = dwa_parameters_->DWA_params.n_samples;
+
+    // Robot constant parameters
+    this->robot_parameters_instance_->mass      = dwa_parameters_->robot_constant_params.mass;
+    this->robot_parameters_instance_->inertia   = dwa_parameters_->robot_constant_params.inertia;
+    this->robot_parameters_instance_->max_speed = dwa_parameters_->robot_constant_params.max_speed;
+    this->robot_parameters_instance_->max_accel = dwa_parameters_->robot_constant_params.max_accel;
+    this->robot_parameters_instance_->max_omega = dwa_parameters_->robot_constant_params.max_omega;
+    this->robot_parameters_instance_->max_alpha = dwa_parameters_->robot_constant_params.max_alpha;
+
+    params_loaded = true;
 }
 
-void DWA_Node::dwa_callback(const custom_interfaces::msg::DWA::SharedPtr msg)
+geometry_msgs::msg::Twist DwaNode::CalculateDWA()
+{
+    // Get robot and DWA parameters
+    auto& robot = *this->robot_parameters_instance_; // Reference to robot parameters
+    auto& dwa = *this->dwa_parameters_instance_; // Reference to DWA parameters
+
+    // Limits
+    float v_max = std::min(robot.max_speed, robot.max_speed + robot.max_accel * dwa.time_horizon);
+    float v_min = std::max(0.0, -robot.max_accel * dwa.time_horizon);
+    float omega_max = std::min(robot.max_omega, robot.max_omega + robot.max_alpha * dwa.time_horizon);
+    float omega_min = std::max(-robot.max_omega, -robot.max_omega - robot.max_alpha * dwa.time_horizon);
+
+    // Sampling
+    int N = dwa.n_samples;
+    float deltaV = (v_max - v_min) / std::max(1, N-1);
+    float deltaW = (omega_max - omega_min) / std::max(1, N-1);
+
+    float best_score = -1e9;
+    float v_opt = 0.0, omega_opt = 0.0;
+
+    for (int i = 0; i <= N; ++i)
+    {
+        float v = v_min + i * deltaV;
+        for (int j = 0; j <= N; ++j)
+        {
+            float omega = omega_min + j * deltaW;
+            RCLCPP_INFO(this->get_logger(), "Evaluating v: %.2f, omega: %.2f", v, omega);
+            // Simulate motion
+            float theta_sim, x_sim, y_sim;
+            float theta = robot.robot_pose.theta;
+            float x = robot.robot_pose.x;
+            float y = robot.robot_pose.y;
+
+            if (std::abs(omega) < 1e-6)
+            {
+                theta_sim = theta;
+                x_sim = x + v * std::cos(theta) * dwa.time_horizon;
+                y_sim = y + v * std::sin(theta) * dwa.time_horizon;
+            }
+            else
+            {
+                float radius = v / omega;
+                theta_sim = theta + omega * dwa.time_horizon;
+                float cx = x - radius * std::sin(theta);
+                float cy = y + radius * std::cos(theta);
+                x_sim = cx + radius * std::sin(theta_sim);
+                y_sim = cy - radius * std::cos(theta_sim);
+            }
+
+            // --- Score calculation ---
+            float heading_score = CalculateHeadingScore(x_sim, y_sim, theta_sim);
+            float obstacle_score = CalculateObstacleScore(x_sim, y_sim);
+            float velocity_score = (robot.max_speed > 0) ? v / robot.max_speed : 0.0;
+            float energy_score = 1.0 - std::min((robot.mass * v * v + robot.inertia * omega * omega) / (2.0 * robot.mass * robot.max_speed * robot.max_speed), 1.0);
+
+            float score = dwa.alpha * heading_score +
+                           dwa.beta * obstacle_score +
+                           dwa.gamma * velocity_score +
+                           dwa.delta * energy_score;
+
+            if (score > best_score)
+            {
+                best_score = score;
+                v_opt = v;
+                omega_opt = omega;
+            }
+        }
+    }
+
+    geometry_msgs::msg::Twist cmd_vel;
+    cmd_vel.linear.x = v_opt;
+    cmd_vel.angular.z = omega_opt;
+    return cmd_vel;
+}
+
+// Example stubs for scoring functions (implement according to your environment)
+float DwaNode::CalculateHeadingScore(float x_sim, float y_sim, float theta_sim)
+{
+    // TODO: Implement using your path/goal
+    // Example: return value between 0 and 1
+    return 1.0;
+}
+
+float DwaNode::CalculateObstacleScore(float x_sim, float y_sim)
+{
+    // TODO: Implement using your lidar/occupancy grid
+    // Example: return value between 0 and 1
+    return 1.0;
+}
+
+void DwaNode::dwaCallback(const custom_interfaces::msg::DWA::SharedPtr msg)
 {
     // Callback implementation
 }
 
-void DWA_Node::timer_callback()
+void DwaNode::timer_callback()
 {
     // Timer callback implementation
 }
 
-DWA_parameters_class::DWA_parameters_class()
+DwaParametersClass::DwaParametersClass()
 {
     // Constructor implementation
 }

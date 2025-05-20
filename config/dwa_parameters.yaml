@@ -1,46 +1,39 @@
 DWA_params:
-  max_speed:
-    type: double
-    default_value: 1.2
-  min_speed:
+  alpha:
     type: double
     default_value: 0.0
-  max_accel:
+  beta:
     type: double
-    default_value: 1.5
-  max_decel:
+    default_value: 0.0
+  delta:
     type: double
-    default_value: -1.5
-  max_yaw_rate:
+    default_value: 0.0
+  gamma:
     type: double
     default_value: 1.0
-  min_yaw_rate:
-    type: double
-    default_value: -1.0
-  max_yaw_accel:
-    type: double
-    default_value: 2.5
-  max_yaw_decel:
-    type: double
-    default_value: -2.5
-  min_turning_radius:
-    type: double
-    default_value: 0.3
-  heading_coeff:
-    type: double
-    default_value: 0.6
-  obstacle_coeff:
-    type: double
-    default_value: 0.8
-  velocity_coeff:
-    type: double
-    default_value: 0.2
-  energy_coeff:
-    type: double
-    default_value: 0.05
   time_horizon:
     type: double
-    default_value: 1.2
-  velocity_samples:
+    default_value: 1.0
+  n_samples:
     type: int
-    default_value: 10
+    default_value: 9
+
+robot_constant_params:
+  mass:
+    type: double
+    default_value: 1.0
+  inertia:
+    type: double
+    default_value: 1.0
+  max_speed:
+    type: double
+    default_value: 1.0
+  max_accel:
+    type: double
+    default_value: 1.0
+  max_omega:
+    type: double
+    default_value: 1.2
+  max_alpha:
+    type: double
+    default_value: 3.0
