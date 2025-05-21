@@ -2,7 +2,7 @@
 #include <vector>
 
 #include <galax_navigation/DWA_class.hpp>
-#include "galax_navigation/observations_server.hpp"
+#include "galax_navigation/observations_server_class.hpp"
 
 void executor_spin(const std::vector<std::shared_ptr<rclcpp::Node>>& nodes)
 {

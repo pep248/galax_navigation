@@ -14,6 +14,8 @@ find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(slam_toolbox REQUIRED)
 find_package(navigation2 REQUIRED)
+
+find_package(custom_interfaces REQUIRED)
 find_package(galax_bringup REQUIRED)
 find_package(path_planning_package REQUIRED)
 # find_package(custom_interfaces REQUIRED)
@@ -21,21 +23,31 @@ find_package(path_planning_package REQUIRED)
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
-# Load config file
-generate_parameter_module( python_aruco_parameters # cmake target name for the parameter library
+
+
+
+# C++
+# DWA parameters
+generate_parameter_library(dwa_parameters # cmake target name for the parameter library
   config/dwa_parameters.yaml # path to input yaml file
 )
 
-# CPP
-# Add the action client executable
+# Generate Parameter Library
 ament_auto_add_executable(DWA_node
   src/DWA_node.cpp
   src/DWA_class.cpp
-  ) #dependency
-# Install the executable
+  src/observations_server_class.cpp
+)
+target_link_libraries(DWA_node
+  dwa_parameters
+)
+target_include_directories(DWA_node
+  PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/dwa_parameters/include
+)
 install(TARGETS DWA_node
   DESTINATION lib/${PROJECT_NAME}
 )
+
 
 # COPY A PARTICULAR FOLDER TO THE INSTALL DIRECTORY
 # Install config dependencies

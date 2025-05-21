@@ -1,4 +1,4 @@
-#include "galax_navigation/observations_server.hpp"
+#include "galax_navigation/observations_server_class.hpp"
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/pose2_d.hpp"
@@ -12,7 +12,9 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 
-ObservationsServerNode::ObservationsServerNode(const std::string & node_name) : Node(node_name)
+// Node Constructor
+ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
+ : Node(node_name)
 {
 
     // Initialize transform listener
@@ -30,7 +32,7 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name) : 
 
     // 2) Distance to next path marker
     // 3) Relative Direction to next path marker
-    this->path_subscription_ = this->create_subscription<navigation_msgs::msg::Path>(
+    this->path_subscription_ = this->create_subscription<nav_msgs::msg::Path>(
         "path",
         1,
         std::bind(&ObservationsServerNode::pathCallback, this, std::placeholders::_1));
@@ -41,8 +43,27 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name) : 
         "/differential_controller/odom",
         1,
         std::bind(&ObservationsServerNode::velocityCallback, this, std::placeholders::_1));
+
+    // 6-15) Closest distance sectors
+    this->laser_subscription_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
+        "/scan",
+        1,
+        std::bind(&ObservationsServerNode::laserCallback, this, std::placeholders::_1));
+
+    // Observations publisher
+    this->observations_publisher_ = this->create_publisher<custom_interfaces::msg::Observations>(
+        "/observations",
+        1);
+    this->normalized_observations_publisher_ = this->create_publisher<custom_interfaces::msg::Observations>(
+        "/normalized_observations",
+        1);
+    this->observations_publisher_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(100),
+        std::bind(&ObservationsServerNode::observationsPublisherTimerCallback, this));
 }
 
+
+// Robot pose callback
 ObservationsServerNode::robotPoseCallback()
 {
     // Get the robot pose from the transform listener
@@ -57,13 +78,17 @@ ObservationsServerNode::robotPoseCallback()
     }
 }
 
+
+// Goal callback
 void ObservationsServerNode::goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
     this->goal_pose.x = msg->pose.position.x;
     this->goal_pose.y = msg->pose.position.y;
 }
 
-void ObservationsServerNode::pathCallback(const navigation_msgs::msg::Path::SharedPtr msg)
+
+// Path callback
+void ObservationsServerNode::pathCallback(const nav_msgs::msg::Path::SharedPtr msg)
 {
     this->path = *msg;
     if (path.poses.size() > 0)
@@ -72,6 +97,7 @@ void ObservationsServerNode::pathCallback(const navigation_msgs::msg::Path::Shar
         this->path_index = this->checkPathIndex(this->path_index, *this->path, 0.3f); // TODO -> add distance threshold as parameter
     }
 }
+
 
 int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Path& path_, float distance_threshold)
 {
@@ -108,6 +134,7 @@ int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Pat
     }
 }
 
+
 float ObservationsServerNode::getMarkerDistance(int index, nav_msgs::msg::Path& path_)
 {
     // Get the current pose of the robot
@@ -121,6 +148,7 @@ float ObservationsServerNode::getMarkerDistance(int index, nav_msgs::msg::Path& 
                                std::pow(next_pose_stamped.pose.position.y - current_pose.y, 2) );
     return distance;
 }
+
 
 float ObservationsServerNode::getMarkerOrientation(int index, nav_msgs::msg::Path& path_)
 {
@@ -140,23 +168,27 @@ float ObservationsServerNode::getMarkerOrientation(int index, nav_msgs::msg::Pat
     return relative_orientation;
 }
 
+
+// Velocity callback
 void ObservationsServerNode::velocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
 {
     this->robot_velocity = *msg;
 }
 
+
+// Laser scan callback
 void ObservationsServerNode::laserCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 {
     // Assign the laser scan message to the laser_scan_msg_ variable
     this->laser_scan_msg_ = msg;
 }
 
-void ObservationsServerNode::filterLaserRanges(const sensor_msgs::msg::LaserScan::SharedPtr msg)
+
+std::vector<float> ObservationsServerNode::filterLaserRanges(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 {
-    // Filter the laser scan data to get the closest distance in each sector
     int num_sectors = 10; // Number of sectors
     float sector_angle = (msg->angle_max - msg->angle_min) / num_sectors;
-    this->observations.closest_distance_sector.resize(num_sectors, std::numeric_limits<float>::max());
+    std::vector<float> closest_distance_sector(num_sectors, std::numeric_limits<float>::max());
 
     for (size_t i = 0; i < msg->ranges.size(); ++i)
     {
@@ -164,11 +196,22 @@ void ObservationsServerNode::filterLaserRanges(const sensor_msgs::msg::LaserScan
         int sector_index = static_cast<int>((angle - msg->angle_min) / sector_angle);
         if (sector_index >= 0 && sector_index < num_sectors)
         {
-            this->observations.closest_distance_sector[sector_index] = std::min(this->observations.closest_distance_sector[sector_index], msg->ranges[i]);
+            closest_distance_sector[sector_index] = std::min(closest_distance_sector[sector_index], msg->ranges[i]);
         }
     }
+    return closest_distance_sector;
 }
-//TODO don't save the laser data in each iteration. Instead save the message pointer and use it in the updateObservations function
+
+
+// Observations publisher timer callback
+void ObservationsServerNode::observationsPublisherTimerCallback()
+{
+    this->updateObservations();
+    this->normalizeObservations();
+    this->observations_publisher_->publish(this->observations);
+    this->normalized_observations_publisher_->publish(this->normalized_observations);
+}
+
 
 void ObservationsServerNode::updateObservations()
 {
@@ -185,26 +228,83 @@ void ObservationsServerNode::updateObservations()
     // 5) Angular velocity
     this->observations.angular_velocity = this->robot_velocity.angular.z;
     // 6-15) Closest distance sectors
-    this->filterLaserRanges(this->laser_scan_msg_);
+    this->observations.closest_distance_sector = this->filterLaserRanges(this->laser_scan_msg_);
 }
+
 
 void ObservationsServerNode::normalizeObservations()
 {
-    // Normalize the observations
-    this->observations.distance_goal /= 10.0f; // TODO: Adjust normalization factor
-    this->observations.distance_next_marker /= 10.0f; // TODO: Adjust normalization factor
-    this->observations.relative_direction_next_marker /= M_PI; // Normalize to [-1, 1]
-    this->observations.linear_velocity /= 10.0f; // TODO: Adjust normalization factor
-    this->observations.angular_velocity /= M_PI; // Normalize to [-1, 1]
+    // Example values, replace with your actual robot/environment parameters
+    float goal_distance_from_origin = std::sqrt(std::pow(this->goal_pose.x, 2) + std::pow(this->goal_pose.y, 2));
+    float marker_max_separation = 3.0f; // Set this to your actual value
+    float v_max = 1.0f;                 // Set this to your actual value
+    float omega_max = 1.2f;             // Set this to your actual value
+    float lidar_max_range = 30.0f;      // Set this to your actual value
+
+    // 1) Distance to goal [0,1]
+    if (goal_distance_from_origin > 0.0f)
+        this->normalized_observations.distance_goal = std::min(this->observations.distance_goal / goal_distance_from_origin, 1.0f);
+    else
+        this->normalized_observations.distance_goal = 0.0f;
+
+    // 2) Distance to next path marker [0,1]
+    this->normalized_observations.distance_next_marker = std::min(this->observations.distance_next_marker / marker_max_separation, 1.0f);
+
+    // 3) Relative direction to next marker [-1,1]
+    this->normalized_observations.relative_direction_next_marker = this->observations.relative_direction_next_marker / static_cast<float>(M_PI);
+
+    // 4) Linear velocity [0,1]
+    this->normalized_observations.linear_velocity = std::min(this->observations.linear_velocity / v_max, 1.0f);
+
+    // 5) Angular velocity [-1, 1]
+    this->normalized_observations.angular_velocity =
+        std::max(std::min(this->observations.angular_velocity / omega_max, 1.0f), -1.0f);
+
+    // 6-15) Closest distance sectors [0,1]
+    this->normalized_observations.closest_distance_sector.resize(this->observations.closest_distance_sector.size());
+    for (size_t i = 0; i < this->observations.closest_distance_sector.size(); ++i)
+    {
+        this->normalized_observations.closest_distance_sector[i] =
+            std::min(this->observations.closest_distance_sector[i] / lidar_max_range, 1.0f);
+    }
 }
 
-void ObservationsServerNode::observationsPublisherTimerCallback()
+
+void ObservationsServerNode::publishObservations()
 {
-    this->updateObservations();
-    this->observations_publisher_->publish(this->observations);
-    this->normalized_observations_publisher_->publish(this->observations);
+    auto observations_msg = CustomInterface::Observations();
+    // 1)  Distance Goal
+    observations_msg.distance_goal = this->observations.distance_goal;
+    // 2)  Distance to next path marker
+    observations_msg.distance_next_marker = this->observations.distance_next_marker;
+    // 3)  Relative Direction to next path marker
+    observations_msg.relative_direction_next_marker = this->observations.relative_direction_next_marker;
+    // 4) Linear velocity
+    observations_msg.linear_velocity = this->observations.linear_velocity;
+    // 5) Angular velocity
+    observations_msg.angular_velocity = this->observations.angular_velocity;
+    // 6-15) Closest distance sectors
+    observations_msg.closest_distance_sector = this->observations.closest_distance_sector;
+    // Publish the observations message
+    this->observations_publisher_->publish(observations_msg);
 }
 
 
-
-#endif  // PATH_PLANNING_SERVER_HPP_
+void ObservationsServerNode::publishNormalizedObservations()
+{
+    auto normalized_observations_msg = CustomInterface::Observations();
+    // 1)  Distance Goal
+    normalized_observations_msg.distance_goal = this->normalized_observations.distance_goal;
+    // 2)  Distance to next path marker
+    normalized_observations_msg.distance_next_marker = this->normalized_observations.distance_next_marker;
+    // 3)  Relative Direction to next path marker
+    normalized_observations_msg.relative_direction_next_marker = this->normalized_observations.relative_direction_next_marker;
+    // 4) Linear velocity
+    normalized_observations_msg.linear_velocity = this->normalized_observations.linear_velocity;
+    // 5) Angular velocity
+    normalized_observations_msg.angular_velocity = this->normalized_observations.angular_velocity;
+    // 6-15) Closest distance sectors
+    normalized_observations_msg.closest_distance_sector = this->normalized_observations.closest_distance_sector;
+    // Publish the normalized observations message
+    this->normalized_observations_publisher_->publish(normalized_observations_msg);
+}

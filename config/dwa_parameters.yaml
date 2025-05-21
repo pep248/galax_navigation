@@ -1,39 +1,40 @@
-DWA_params:
-  alpha:
-    type: double
-    default_value: 0.0
-  beta:
-    type: double
-    default_value: 0.0
-  delta:
-    type: double
-    default_value: 0.0
-  gamma:
-    type: double
-    default_value: 1.0
-  time_horizon:
-    type: double
-    default_value: 1.0
-  n_samples:
-    type: int
-    default_value: 9
+dwa_parameters:
+  DWA_params:
+    alpha:
+      type: double
+      default_value: 0.0
+    beta:
+      type: double
+      default_value: 0.0
+    delta:
+      type: double
+      default_value: 0.0
+    gamma:
+      type: double
+      default_value: 1.0
+    time_horizon:
+      type: double
+      default_value: 1.0
+    n_samples:
+      type: int
+      default_value: 9
 
-robot_constant_params:
-  mass:
-    type: double
-    default_value: 1.0
-  inertia:
-    type: double
-    default_value: 1.0
-  max_speed:
-    type: double
-    default_value: 1.0
-  max_accel:
-    type: double
-    default_value: 1.0
-  max_omega:
-    type: double
-    default_value: 1.2
-  max_alpha:
-    type: double
-    default_value: 3.0
+  robot_constant_params:
+    mass:
+      type: double
+      default_value: 1.0
+    inertia:
+      type: double
+      default_value: 1.0
+    max_speed:
+      type: double
+      default_value: 1.0
+    max_accel:
+      type: double
+      default_value: 1.0
+    max_omega:
+      type: double
+      default_value: 1.2
+    max_alpha:
+      type: double
+      default_value: 3.0
