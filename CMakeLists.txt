@@ -25,10 +25,9 @@ ament_auto_find_build_dependencies()
 
 
 
-
 # C++
 # DWA parameters
-generate_parameter_library(dwa_parameters # cmake target name for the parameter library
+generate_parameter_library(dwa_parameters_file # cmake target name for the parameter library
   config/dwa_parameters.yaml # path to input yaml file
 )
 
@@ -39,10 +38,10 @@ ament_auto_add_executable(DWA_node
   src/observations_server_class.cpp
 )
 target_link_libraries(DWA_node
-  dwa_parameters
+  dwa_parameters_file
 )
 target_include_directories(DWA_node
-  PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/dwa_parameters/include
+  PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/dwa_parameters_file/include
 )
 install(TARGETS DWA_node
   DESTINATION lib/${PROJECT_NAME}

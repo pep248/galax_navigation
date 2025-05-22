@@ -31,10 +31,10 @@ int main(int argc, char ** argv)
 {
     rclcpp::init(argc, argv);
 
-    auto dwa_node = std::make_shared<DwaNode>('dwa_node');
-    auto ObservationsServerNode = std::make_shared<ObservationsServerNode>('ObservationsServerNode');
+    auto dwa_node = std::make_shared<DwaNode>("dwa_node");
+    auto observations_server_node = std::make_shared<ObservationsServerNode>("observations_server_node");
 
-    std::vector<std::shared_ptr<rclcpp::Node>> nodes = {dwa_node, ObservationsServerNode};
+    std::vector<std::shared_ptr<rclcpp::Node>> nodes = {dwa_node, observations_server_node};
 
     std::thread ros_thread(executor_spin, nodes);
     ros_thread.detach();

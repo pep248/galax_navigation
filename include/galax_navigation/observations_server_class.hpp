@@ -15,6 +15,19 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 
+#include "rclcpp/rclcpp.hpp"
+#include "geometry_msgs/msg/pose2_d.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
+
+#include "nav_msgs/msg/path.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
+
+#include "custom_interfaces/msg/observations.hpp"
+
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <tf2/utils.hpp>  // Add this include for tf2::getYaw
+
 class ObservationsServerNode : public rclcpp::Node
 {
     public:
@@ -46,10 +59,11 @@ class ObservationsServerNode : public rclcpp::Node
         // 3)  Relative Direction to next path marker
         rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_subscription_;
         void pathCallback(const nav_msgs::msg::Path::SharedPtr msg);
-        nav_msgs::msg::Path path;
+        nav_msgs::msg::Path::SharedPtr path_;
         int path_index = 0;
-        int checkPathIndex(int current_index, nav_msgs::msg::Path& path_, float distance_threshold = 0.3f); // TODO -> add distance threshold as parameter
-        float getMarkerDistance(int index, nav_msgs::msg::Path& path_);
+        int checkPathIndex(int current_index, nav_msgs::msg::Path::SharedPtr path_, float distance_threshold = 0.3f); // TODO -> add distance threshold as parameter
+        float getMarkerDistance(int index, nav_msgs::msg::Path::SharedPtr path_);
+        float getMarkerOrientation(int index, nav_msgs::msg::Path::SharedPtr path_);
         
 
         // 4) Linear velocity

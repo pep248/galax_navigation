@@ -1,16 +1,6 @@
 #include "galax_navigation/observations_server_class.hpp"
 
-#include "rclcpp/rclcpp.hpp"
-#include "geometry_msgs/msg/pose2_d.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
 
-#include "nav_msgs/msg/path.hpp"
-#include "sensor_msgs/msg/laser_scan.hpp"
-
-#include "custom_interfaces/msg/observations.hpp"
-
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/buffer.h>
 
 // Node Constructor
 ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
@@ -33,7 +23,7 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
     // 2) Distance to next path marker
     // 3) Relative Direction to next path marker
     this->path_subscription_ = this->create_subscription<nav_msgs::msg::Path>(
-        "path",
+        "/path",
         1,
         std::bind(&ObservationsServerNode::pathCallback, this, std::placeholders::_1));
 
@@ -64,7 +54,7 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
 
 
 // Robot pose callback
-ObservationsServerNode::robotPoseCallback()
+void ObservationsServerNode::robotPoseCallback()
 {
     // Get the robot pose from the transform listener
     geometry_msgs::msg::TransformStamped transform;
@@ -90,16 +80,16 @@ void ObservationsServerNode::goalCallback(const geometry_msgs::msg::PoseStamped:
 // Path callback
 void ObservationsServerNode::pathCallback(const nav_msgs::msg::Path::SharedPtr msg)
 {
-    this->path = *msg;
-    if (path.poses.size() > 0)
+    this->path_ = msg;
+    if (path_->poses.size() > 0)
     {
         this->path_index = 0;
-        this->path_index = this->checkPathIndex(this->path_index, *this->path, 0.3f); // TODO -> add distance threshold as parameter
+        this->path_index = this->checkPathIndex(this->path_index, this->path_, 0.3f); // TODO -> add distance threshold as parameter
     }
 }
 
 
-int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Path& path_, float distance_threshold)
+int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Path::SharedPtr path_, float distance_threshold)
 {
     // Check if the path is empty
     if (path_->poses.empty())
@@ -116,7 +106,7 @@ int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Pat
     if (distance < distance_threshold && current_index < path_->poses.size() - 1)
     {
         // Move to the next index
-        return this->checkPathIndex(current_index + 1, path, distance_threshold);
+        return this->checkPathIndex(current_index + 1, path_, distance_threshold);
     }
     // If the distance is greater than the threshold, stay at the current index
     else if (distance >= distance_threshold && current_index < path_->poses.size() - 1)
@@ -135,28 +125,25 @@ int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Pat
 }
 
 
-float ObservationsServerNode::getMarkerDistance(int index, nav_msgs::msg::Path& path_)
+float ObservationsServerNode::getMarkerDistance(int index, nav_msgs::msg::Path::SharedPtr path_)
 {
-    // Get the current pose of the robot
-    geometry_msgs::msg::Pose2D robot_pose = this->robot_pose;
-
     // Get the next pose in the path
-    geometry_msgs::msg::PoseStamped next_pose_stamped = path_->poses[current_index];
+    geometry_msgs::msg::PoseStamped next_pose_stamped = path_->poses[index];
     
     // Calculate the distance to the next pose
-    float distance = std::sqrt(std::pow(next_pose_stamped.pose.position.x - current_pose.x, 2) +
-                               std::pow(next_pose_stamped.pose.position.y - current_pose.y, 2) );
+    float distance = std::sqrt(std::pow(next_pose_stamped.pose.position.x - this->robot_pose.x, 2) +
+                               std::pow(next_pose_stamped.pose.position.y - this->robot_pose.y, 2) );
     return distance;
 }
 
 
-float ObservationsServerNode::getMarkerOrientation(int index, nav_msgs::msg::Path& path_)
+float ObservationsServerNode::getMarkerOrientation(int index, nav_msgs::msg::Path::SharedPtr path_)
 {
 // Get the current pose of the robot
     geometry_msgs::msg::Pose2D robot_pose = this->robot_pose;
 
     // Get the next pose in the path
-    geometry_msgs::msg::PoseStamped next_pose_stamped = path_->poses[current_index];
+    geometry_msgs::msg::PoseStamped next_pose_stamped = path_->poses[index];
 
     // Calculate the orientation to the next pose
     float absolute_orientation = std::atan2(next_pose_stamped.pose.position.y - robot_pose.y,
@@ -208,21 +195,21 @@ void ObservationsServerNode::observationsPublisherTimerCallback()
 {
     this->updateObservations();
     this->normalizeObservations();
-    this->observations_publisher_->publish(this->observations);
-    this->normalized_observations_publisher_->publish(this->normalized_observations);
+    this->publishObservations();
+    this->publishNormalizedObservations();
 }
 
 
 void ObservationsServerNode::updateObservations()
 {
     // Update current marker index
-    this->path_index = this->checkPathIndex(this->path_index, *this->path, 0.3f); // TODO -> add distance threshold as parameter
+    this->path_index = this->checkPathIndex(this->path_index, this->path_, 0.3f); // TODO -> add distance threshold as parameter
     // 1)  Distance Goal
-    this->observations.distance_goal = this->getMarkerDistance(this->path.poses.size()-1, *this->path);
+    this->observations.distance_goal = this->getMarkerDistance(this->path_->poses.size()-1, this->path_);
     // 2)  Distance to next path marker
-    this->observations.distance_next_marker = this->getMarkerDistance(this->path_index, *this->path);
+    this->observations.distance_next_marker = this->getMarkerDistance(this->path_index, this->path_);
     // 3)  Relative Direction to next path marker
-    this->observations.relative_direction_next_marker = this->getMarkerOrientation(this->path_index, *this->path);
+    this->observations.relative_direction_next_marker = this->getMarkerOrientation(this->path_index, this->path_);
     // 4) Linear velocity
     this->observations.linear_velocity = this->robot_velocity.linear.x;
     // 5) Angular velocity
@@ -272,7 +259,7 @@ void ObservationsServerNode::normalizeObservations()
 
 void ObservationsServerNode::publishObservations()
 {
-    auto observations_msg = CustomInterface::Observations();
+    auto observations_msg = custom_interfaces::msg::Observations();
     // 1)  Distance Goal
     observations_msg.distance_goal = this->observations.distance_goal;
     // 2)  Distance to next path marker
@@ -292,7 +279,7 @@ void ObservationsServerNode::publishObservations()
 
 void ObservationsServerNode::publishNormalizedObservations()
 {
-    auto normalized_observations_msg = CustomInterface::Observations();
+    auto normalized_observations_msg = custom_interfaces::msg::Observations();
     // 1)  Distance Goal
     normalized_observations_msg.distance_goal = this->normalized_observations.distance_goal;
     // 2)  Distance to next path marker

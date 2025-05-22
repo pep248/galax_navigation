@@ -1,4 +1,4 @@
-dwa_parameters:
+dwa_parameters_file:
   DWA_params:
     alpha:
       type: double
