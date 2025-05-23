@@ -6,12 +6,12 @@ dwa_parameters_file:
     beta:
       type: double
       default_value: 0.0
-    delta:
-      type: double
-      default_value: 0.0
     gamma:
       type: double
       default_value: 1.0
+    delta:
+      type: double
+      default_value: 0.0
     time_horizon:
       type: double
       default_value: 1.0

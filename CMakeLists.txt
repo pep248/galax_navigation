@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 3.8)
 project(galax_navigation)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD 14)
 endif()
 
 # DEPENDENCIES
+
 
 # Find packages
 find_package(ament_cmake REQUIRED)
@@ -18,11 +19,10 @@ find_package(navigation2 REQUIRED)
 find_package(custom_interfaces REQUIRED)
 find_package(galax_bringup REQUIRED)
 find_package(path_planning_package REQUIRED)
-# find_package(custom_interfaces REQUIRED)
+find_package(rviz2 REQUIRED)
 
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
-
 
 
 # C++
@@ -30,7 +30,6 @@ ament_auto_find_build_dependencies()
 generate_parameter_library(dwa_parameters_file # cmake target name for the parameter library
   config/dwa_parameters.yaml # path to input yaml file
 )
-
 # Generate Parameter Library
 ament_auto_add_executable(DWA_node
   src/DWA_node.cpp
@@ -48,6 +47,17 @@ install(TARGETS DWA_node
 )
 
 
+# # PYTHON
+# # Install Python modules
+# ament_python_install_package(${PROJECT_NAME})
+# # Install Python executables
+# install(PROGRAMS
+#   scripts/publisher.py
+#   scripts/subscriber.py
+#   DESTINATION lib/${PROJECT_NAME}
+# )
+
+
 # COPY A PARTICULAR FOLDER TO THE INSTALL DIRECTORY
 # Install config dependencies
 install(
@@ -60,17 +70,6 @@ install(
 )
 
 
+# LAUNCH
 # Install launchfile
-install(
-  DIRECTORY
-    launch
-  DESTINATION share/${PROJECT_NAME}
-)
-
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  set(ament_cmake_copyright_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
-
-ament_package()
+ament_auto_package(INSTALL_TO_SHARE launch)

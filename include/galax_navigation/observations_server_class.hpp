@@ -1,32 +1,27 @@
 #ifndef OBSERVATIONS_SERVER_HPP_
 #define OBSERVATIONS_SERVER_HPP_
 
+// ===== Standard libraries =====
+#include <memory>
+
+// ===== ROS-specific imports =====
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp/qos.hpp"
+
 #include "geometry_msgs/msg/pose2_d.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
-
+#include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 
-#include "custom_interfaces/msg/observations.hpp"
-
-#include "galax_navigation/observations_class.hpp"
-
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
+#include <tf2/utils.hpp>  // For tf2::getYaw
 
-#include "rclcpp/rclcpp.hpp"
-#include "geometry_msgs/msg/pose2_d.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
+// ===== Custom parameters and project-specific headers =====
+#include <custom_interfaces/msg/observations.hpp>
+#include <galax_navigation/observations_class.hpp>
 
-#include "nav_msgs/msg/path.hpp"
-#include "sensor_msgs/msg/laser_scan.hpp"
-
-#include "custom_interfaces/msg/observations.hpp"
-
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/buffer.h>
-#include <tf2/utils.hpp>  // Add this include for tf2::getYaw
 
 class ObservationsServerNode : public rclcpp::Node
 {

@@ -18,8 +18,8 @@
   <depend>custom_interfaces</depend>
   <depend>galax_bringup</depend>
   <depend>path_planning_package</depend>
+  <depend>rviz2</depend>
   <depend version_gte="0.3.9">generate_parameter_library</depend>
-  <!-- <depend>custom_interfaces</depend> -->
   
   <build_depend>rosidl_default_generators</build_depend>
   

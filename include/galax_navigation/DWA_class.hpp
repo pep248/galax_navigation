@@ -1,18 +1,25 @@
 #ifndef DWA_NODE_HPP_
 #define DWA_NODE_HPP_
 
+// ===== Standard libraries =====
+#include <memory>
+
+// ===== ROS-specific imports =====
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/qos.hpp"
-#include "custom_interfaces/msg/dwa.hpp"
+
+#include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "geometry_msgs/msg/pose2_d.hpp"
-#include <galax_navigation/dwa_parameters_file.hpp>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/buffer.h>
-#include <geometry_msgs/msg/transform_stamped.hpp>
-#include <memory>
 #include "nav_msgs/msg/path.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
+
+// ===== Custom parameters and project-specific headers =====
+#include <custom_interfaces/msg/dwa.hpp>
+#include <custom_interfaces/msg/observations.hpp>
+#include <galax_navigation/dwa_parameters_file.hpp>
 #include <galax_navigation/DWA_params_class.hpp>
+#include <galax_navigation/observations_class.hpp>
+
 
 
 class DwaNode : public rclcpp::Node
@@ -22,9 +29,30 @@ class DwaNode : public rclcpp::Node
 
         void start();
 
-        bool params_loaded = false;
-
     private:
+        // Observations
+        // 1)  Distance Goal
+        // 2)  Distance to next path marker
+        // 3)  Relative Direction to next path marker
+
+        // 4) Linear velocity
+        // 5) Angular velocity
+
+        // 6) Closest distance sector 1 (1-12)
+        // 7) Closest distance sector 2 (13-24)
+        // 8) Closest distance sector 3 (25-36)
+        // 9) Closest distance sector 4 (37-48)
+        // 10) Closest distance sector 5 (49-60)
+        // 11) Closest distance sector 6 (61-72)
+        // 12) Closest distance sector 7 (73-84)
+        // 13) Closest distance sector 8 (85-96)
+        // 14) Closest distance sector 9 (97-108)
+        // 15) Closest distance sector 10 (109-120)
+
+        custom_interfaces::msg::Observations::SharedPtr observations_;
+        custom_interfaces::msg::Observations::SharedPtr normalized_observations_;
+
+
         // Parameters
         std::shared_ptr<dwa_parameters_file::ParamListener> dwa_parameters_listener_;
         std::shared_ptr<dwa_parameters_file::Params::DwaParams> dwa_parameters_;
@@ -37,9 +65,22 @@ class DwaNode : public rclcpp::Node
 
 
         // Subscribers
-        rclcpp::Subscription<custom_interfaces::msg::Dwa>::SharedPtr DWA_subscription_;
-        void dwaCallback(
+        rclcpp::Subscription<custom_interfaces::msg::Dwa>::SharedPtr dwa_subscription_;
+        void updateDwaCallback(
             const custom_interfaces::msg::Dwa::SharedPtr msg);
+
+        rclcpp::Subscription<custom_interfaces::msg::Observations>::SharedPtr observations_subscription_;
+        void observationsCallback(
+            const custom_interfaces::msg::Observations::SharedPtr msg);
+
+        rclcpp::Subscription<custom_interfaces::msg::Observations>::SharedPtr normalized_observations_subscription_;
+        void normalizedObservationsCallback(
+            const custom_interfaces::msg::Observations::SharedPtr msg);
+
+        rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_subscription_;
+        void lidarCallback(
+            const sensor_msgs::msg::LaserScan::SharedPtr msg);
+        sensor_msgs::msg::LaserScan::SharedPtr lidar_data_;
 
 
         // Publishers
@@ -47,24 +88,13 @@ class DwaNode : public rclcpp::Node
 
 
         // Timers
-        rclcpp::TimerBase::SharedPtr initial_check_timer_;
-        void initialCheckTimerCallback();
-
-        rclcpp::TimerBase::SharedPtr robot_pose_timer_;
-        void robotPoseTimerCallback();
-
         rclcpp::TimerBase::SharedPtr DWA_timer_;
         void dwaTimerCallback();
 
 
-        // Transform listener
-        std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-        std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
-
-
         // DWA Algorithm
         geometry_msgs::msg::Twist calculateDWA();
-        float calculateHeadingScore(float x_sim, float y_sim, float theta_sim);
+        float calculateHeadingScore();
         float calculateObstacleScore(float x_sim, float y_sim);
 };
 

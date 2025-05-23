@@ -2,7 +2,7 @@
 #include <vector>
 
 #include <galax_navigation/DWA_class.hpp>
-#include "galax_navigation/observations_server_class.hpp"
+#include <galax_navigation/observations_server_class.hpp>
 
 void executor_spin(const std::vector<std::shared_ptr<rclcpp::Node>>& nodes)
 {
@@ -31,7 +31,7 @@ int main(int argc, char ** argv)
 {
     rclcpp::init(argc, argv);
 
-    auto dwa_node = std::make_shared<DwaNode>("dwa_node");
+    // auto dwa_node = std::make_shared<DwaNode>("dwa_node");
     auto observations_server_node = std::make_shared<ObservationsServerNode>("observations_server_node");
 
     std::vector<std::shared_ptr<rclcpp::Node>> nodes = {dwa_node, observations_server_node};
@@ -39,8 +39,8 @@ int main(int argc, char ** argv)
     std::thread ros_thread(executor_spin, nodes);
     ros_thread.detach();
 
-    dwa_node->start();
-    observations_server_node->start();
+    // dwa_node->start();
+    // observations_server_node->start();
 
     return 0;
 }

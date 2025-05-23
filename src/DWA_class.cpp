@@ -11,44 +11,51 @@ DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
     this->robot_parameters_instance_ = std::make_shared<RobotParametersClass>();
 
     this->get_params();
-    
-
-    // Initialize transform listener
-    this->tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-    this->tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*this->tf_buffer_);
 
 
     // Initialize subscribers
-    DWA_subscription_ = this->create_subscription<custom_interfaces::msg::Dwa>(
-        "dwa_parameters", 
-        10,
-        std::bind(&DwaNode::dwaCallback, this, std::placeholders::_1));
+    this->dwa_subscription_ = this->create_subscription<custom_interfaces::msg::Dwa>(
+        "/dwa_parameters", 
+        1,
+        std::bind(&DwaNode::updateDwaCallback, this, std::placeholders::_1));
+
+    this->observations_subscription_ = this->create_subscription<custom_interfaces::msg::Observations>(
+        "/observations", 
+        1,
+        std::bind(&DwaNode::observationsCallback, this, std::placeholders::_1));
+
+    this->normalized_observations_subscription_ = this->create_subscription<custom_interfaces::msg::Observations>(
+        "/normalized_observations", 
+        1,
+        std::bind(&DwaNode::observationsCallback, this, std::placeholders::_1));
+
+    this->lidar_subscription_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
+        "/scan", 
+        1,
+        std::bind(&DwaNode::lidarCallback, this, std::placeholders::_1));
 
 
     // Initialize publishers
-    cmd_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>(
+    this->cmd_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>(
         "cmd_vel", 
         rclcpp::QoS(10));
 
-        
-    // Initialize timer -> TODO -> create the timer once the parametsrs have been loaded
-    initial_check_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(100),
-        std::bind(&DwaNode::initialCheckTimerCallback, this));
 }
+
 
 void DwaNode::start()
 {
 
 }
 
+
 void DwaNode::get_params()
 {
     // DWA parameters
     this->dwa_parameters_instance_->alpha        = dwa_parameters_->alpha;
     this->dwa_parameters_instance_->beta         = dwa_parameters_->beta;
-    this->dwa_parameters_instance_->delta        = dwa_parameters_->delta;
     this->dwa_parameters_instance_->gamma        = dwa_parameters_->gamma;
+    this->dwa_parameters_instance_->delta        = dwa_parameters_->delta;
     this->dwa_parameters_instance_->time_horizon = dwa_parameters_->time_horizon;
     this->dwa_parameters_instance_->n_samples    = dwa_parameters_->n_samples;
 
@@ -60,8 +67,52 @@ void DwaNode::get_params()
     this->robot_parameters_instance_->max_omega = robot_parameters_->max_omega;
     this->robot_parameters_instance_->max_alpha = robot_parameters_->max_alpha;
 
-    params_loaded = true;
 }
+
+
+// Callbacks
+void DwaNode::updateDwaCallback(const custom_interfaces::msg::Dwa::SharedPtr msg)
+{
+    this->dwa_parameters_instance_->alpha        = msg->alpha;
+    this->dwa_parameters_instance_->beta         = msg->beta;
+    this->dwa_parameters_instance_->gamma        = msg->gamma;
+    this->dwa_parameters_instance_->delta        = msg->delta;
+    
+}
+
+
+void DwaNode::observationsCallback(const custom_interfaces::msg::Observations::SharedPtr msg)
+{
+    this->observations_ = msg;
+}
+
+
+void DwaNode::normalizedObservationsCallback(const custom_interfaces::msg::Observations::SharedPtr msg)
+{
+    this->normalized_observations_ = msg;
+}
+
+
+void DwaNode::lidarCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
+{
+    this->lidar_data_ = msg;
+}
+
+
+// DWA
+void DwaNode::dwaTimerCallback()
+{
+    // Calculate the DWA command
+    geometry_msgs::msg::Twist cmd_vel = this->calculateDWA();
+
+    // TODO
+    // Implement a velocity smoother here
+    // For now, just publish the command directly
+
+    // Publish the command
+    this->cmd_publisher_->publish(cmd_vel);
+}
+
 
 geometry_msgs::msg::Twist DwaNode::calculateDWA()
 {
@@ -92,9 +143,9 @@ geometry_msgs::msg::Twist DwaNode::calculateDWA()
             RCLCPP_INFO(this->get_logger(), "Evaluating v: %.2f, omega: %.2f", v, omega);
             // Simulate motion
             float theta_sim, x_sim, y_sim;
-            float theta = robot.robot_pose.theta;
-            float x = robot.robot_pose.x;
-            float y = robot.robot_pose.y;
+            float theta = 0;
+            float x = 0;
+            float y = 0;
 
             if (std::abs(omega) < 1e-6)
             {
@@ -112,10 +163,17 @@ geometry_msgs::msg::Twist DwaNode::calculateDWA()
                 y_sim = cy - radius * std::cos(theta_sim);
             }
 
-            // --- Score calculation ---
-            float heading_score = calculateHeadingScore(x_sim, y_sim, theta_sim);
+            // Heading score
+            float heading_score = calculateHeadingScore();
+            // Obstacle score
             float obstacle_score = calculateObstacleScore(x_sim, y_sim);
-            float velocity_score = (robot.max_speed > 0) ? v / robot.max_speed : 0.0;
+            // Velocity score
+            float velocity_score = 0.0f;
+            if (robot.max_speed > 0.0f)
+            {
+                velocity_score = v / robot.max_speed; // Value between 0 (stopped) and 1 (max speed)
+            }
+            // Energy score
             float energy_score = 1.0 - std::min((robot.mass * v * v + robot.inertia * omega * omega) / (2.0 * robot.mass * robot.max_speed * robot.max_speed), 1.0);
 
             float score = dwa.alpha * heading_score +
@@ -138,27 +196,52 @@ geometry_msgs::msg::Twist DwaNode::calculateDWA()
     return cmd_vel;
 }
 
-// Example stubs for scoring functions (implement according to your environment)
-float DwaNode::calculateHeadingScore(float x_sim, float y_sim, float theta_sim)
+
+float DwaNode::calculateHeadingScore()
 {
-    // TODO: Implement using your path/goal
-    // Example: return value between 0 and 1
-    return 1.0;
+    // Use the normalized heading error from observations (already in [-1, 1])
+    // The closer to 0, the better aligned we are.
+    if (this->normalized_observations_) {
+        float heading_error = this->normalized_observations_->relative_direction_next_marker; // [-1, 1]
+        // Convert error to a score in [0, 1], where 1 is best alignment
+        return 1.0f - std::fabs(heading_error);
+    }
+    return 0.0f;
 }
+
 
 float DwaNode::calculateObstacleScore(float x_sim, float y_sim)
 {
-    // TODO: Implement using your lidar/occupancy grid
-    // Example: return value between 0 and 1
-    return 1.0;
+    // Use the latest lidar data to compute the minimum distance from (x_sim, y_sim) to any lidar point
+    if (!lidar_data_) {
+        return 1.0f; // No data, safest score
+    }
+
+    const auto& scan = lidar_data_;
+    float min_distance = std::numeric_limits<float>::max();
+
+    // Robot pose (assume at (0,0,0) in its own frame for simulation)
+    // If you want to use the real robot pose, adjust accordingly.
+
+    for (size_t i = 0; i < scan->ranges.size(); ++i) {
+        float range = scan->ranges[i];
+        if (range < scan->range_min || range > scan->range_max) continue;
+        float angle = scan->angle_min + i * scan->angle_increment;
+        // Lidar point in robot frame
+        float lx = range * std::cos(angle);
+        float ly = range * std::sin(angle);
+        // Distance from simulated point to this lidar point
+        float dist = std::hypot(lx - x_sim, ly - y_sim);
+        if (dist < min_distance)
+        {
+            min_distance = dist;
+        }
+    }
+
+    // Cap and normalize as in your MATLAB code
+    min_distance = std::max(min_distance, 0.4f);
+    float score = std::min((min_distance - 0.4f) / (2.0f - 0.4f), 1.0f);
+    return score;
 }
 
-void DwaNode::dwaCallback(const custom_interfaces::msg::Dwa::SharedPtr msg)
-{
-    // Callback implementation
-}
 
-void DwaNode::dwaTimerCallback()
-{
-    // Timer callback implementation
-}

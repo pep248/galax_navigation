@@ -44,9 +44,12 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
     this->observations_publisher_ = this->create_publisher<custom_interfaces::msg::Observations>(
         "/observations",
         1);
+        
     this->normalized_observations_publisher_ = this->create_publisher<custom_interfaces::msg::Observations>(
         "/normalized_observations",
         1);
+
+
     this->observations_publisher_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&ObservationsServerNode::observationsPublisherTimerCallback, this));
