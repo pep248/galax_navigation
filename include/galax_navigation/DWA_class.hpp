@@ -20,8 +20,12 @@ class DwaNode : public rclcpp::Node
     public:
         DwaNode(const std::string & node_name);
 
-        void get_params();
+        void start();
 
+        bool params_loaded = false;
+
+    private:
+        // Parameters
         std::shared_ptr<dwa_parameters_file::ParamListener> dwa_parameters_listener_;
         std::shared_ptr<dwa_parameters_file::Params::DwaParams> dwa_parameters_;
         std::shared_ptr<dwa_parameters_file::Params::RobotConstantParams> robot_parameters_;
@@ -29,31 +33,36 @@ class DwaNode : public rclcpp::Node
         std::shared_ptr<DwaParametersClass> dwa_parameters_instance_;
         std::shared_ptr<RobotParametersClass> robot_parameters_instance_;
 
-        bool params_loaded = false;
+        void get_params();
 
-    private:
+
         // Subscribers
         rclcpp::Subscription<custom_interfaces::msg::Dwa>::SharedPtr DWA_subscription_;
         void dwaCallback(
             const custom_interfaces::msg::Dwa::SharedPtr msg);
 
+
         // Publishers
         rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_publisher_;
+
 
         // Timers
         rclcpp::TimerBase::SharedPtr initial_check_timer_;
         void initialCheckTimerCallback();
 
         rclcpp::TimerBase::SharedPtr robot_pose_timer_;
-        void robotPoseCallback();
+        void robotPoseTimerCallback();
 
         rclcpp::TimerBase::SharedPtr DWA_timer_;
         void dwaTimerCallback();
+
 
         // Transform listener
         std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
         std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
+
+        // DWA Algorithm
         geometry_msgs::msg::Twist calculateDWA();
         float calculateHeadingScore(float x_sim, float y_sim, float theta_sim);
         float calculateObstacleScore(float x_sim, float y_sim);

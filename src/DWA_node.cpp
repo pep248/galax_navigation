@@ -40,7 +40,7 @@ int main(int argc, char ** argv)
     ros_thread.detach();
 
     dwa_node->start();
-    ObservationsServerNode->start();
+    observations_server_node->start();
 
     return 0;
 }

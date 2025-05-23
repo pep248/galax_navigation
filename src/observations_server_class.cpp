@@ -53,6 +53,12 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
 }
 
 
+void ObservationsServerNode::start()
+{
+    
+}
+
+
 // Robot pose callback
 void ObservationsServerNode::robotPoseCallback()
 {

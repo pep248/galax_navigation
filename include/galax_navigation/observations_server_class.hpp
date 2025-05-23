@@ -33,6 +33,8 @@ class ObservationsServerNode : public rclcpp::Node
     public:
         ObservationsServerNode(const std::string & node_name);
 
+        void start();
+
     private:
         // Observations
         Observations observations;

@@ -2,14 +2,21 @@
 
 DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
 {   
-    // Initialize parameter listener
+    // Parameters
     this->dwa_parameters_listener_ = std::make_shared<dwa_parameters_file::ParamListener>(this->shared_from_this());
-    this->dwa_parameters_ = std::make_shared<dwa_parameters_file::Params::DwaParams>(this->shared_from_this());
-    this->robot_parameters_ = std::make_shared<dwa_parameters_file::Params::RobotConstantParams>(this->shared_from_this());
+    this->dwa_parameters_ = std::make_shared<dwa_parameters_file::Params::DwaParams>();
+    this->robot_parameters_ = std::make_shared<dwa_parameters_file::Params::RobotConstantParams>();
 
-    // Initialize DWA parameters
     this->dwa_parameters_instance_ = std::make_shared<DwaParametersClass>();
     this->robot_parameters_instance_ = std::make_shared<RobotParametersClass>();
+
+    this->get_params();
+    
+
+    // Initialize transform listener
+    this->tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+    this->tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*this->tf_buffer_);
+
 
     // Initialize subscribers
     DWA_subscription_ = this->create_subscription<custom_interfaces::msg::Dwa>(
@@ -17,15 +24,22 @@ DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
         10,
         std::bind(&DwaNode::dwaCallback, this, std::placeholders::_1));
 
+
     // Initialize publishers
     cmd_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>(
         "cmd_vel", 
         rclcpp::QoS(10));
 
+        
     // Initialize timer -> TODO -> create the timer once the parametsrs have been loaded
     initial_check_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&DwaNode::initialCheckTimerCallback, this));
+}
+
+void DwaNode::start()
+{
+
 }
 
 void DwaNode::get_params()
