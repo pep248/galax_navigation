@@ -149,7 +149,7 @@ float ObservationsServerNode::getMarkerDistance(int index, nav_msgs::msg::Path::
 float ObservationsServerNode::getMarkerOrientation(int index, nav_msgs::msg::Path::SharedPtr path_)
 {
 // Get the current pose of the robot
-    geometry_msgs::msg::Pose2D robot_pose = this->robot_pose;
+    auto& robot_pose = this->robot_pose;
 
     // Get the next pose in the path
     geometry_msgs::msg::PoseStamped next_pose_stamped = path_->poses[index];
