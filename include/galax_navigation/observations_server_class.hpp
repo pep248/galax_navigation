@@ -16,7 +16,9 @@
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
-#include <tf2/utils.hpp>  // For tf2::getYaw
+#include <tf2/utils.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2_ros/transform_listener.h>
 
 // ===== Custom parameters and project-specific headers =====
 #include <custom_interfaces/msg/observations.hpp>

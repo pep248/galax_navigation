@@ -15,10 +15,11 @@ find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(slam_toolbox REQUIRED)
 find_package(navigation2 REQUIRED)
-
 find_package(custom_interfaces REQUIRED)
-# find_package(galax_bringup REQUIRED)
 find_package(path_planning_package REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 # find_package(gazebo_ros REQUIRED)
 # find_package(gazebo_ros_pkgs REQUIRED)

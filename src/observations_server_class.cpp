@@ -68,10 +68,22 @@ void ObservationsServerNode::robotPoseCallback()
     // Get the robot pose from the transform listener
     geometry_msgs::msg::TransformStamped transform;
     try {
-        transform = tf_buffer_->lookupTransform("pioneer3dx_odom", "map", tf2::TimePointZero);
+        transform = tf_buffer_->lookupTransform("map", "pioneer3dx_odom", tf2::TimePointZero);
         robot_pose.x = transform.transform.translation.x;
         robot_pose.y = transform.transform.translation.y;
-        robot_pose.theta = tf2::getYaw(transform.transform.rotation);
+
+        // Convert quaternion to yaw (theta)
+        tf2::Quaternion q(
+            transform.transform.rotation.x,
+            transform.transform.rotation.y,
+            transform.transform.rotation.z,
+            transform.transform.rotation.w
+        );
+        tf2::Matrix3x3 m(q);
+        double roll, pitch, yaw;
+        m.getRPY(roll, pitch, yaw);
+        robot_pose.theta = yaw;
+
     } catch (tf2::TransformException & ex) {
         RCLCPP_WARN(this->get_logger(), "Could not get robot pose: %s", ex.what());
     }
