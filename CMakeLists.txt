@@ -17,9 +17,13 @@ find_package(slam_toolbox REQUIRED)
 find_package(navigation2 REQUIRED)
 
 find_package(custom_interfaces REQUIRED)
-find_package(galax_bringup REQUIRED)
+# find_package(galax_bringup REQUIRED)
 find_package(path_planning_package REQUIRED)
-find_package(rviz2 REQUIRED)
+
+# find_package(gazebo_ros REQUIRED)
+# find_package(gazebo_ros_pkgs REQUIRED)
+# find_package(gazebo_ros2_control REQUIRED)
+# find_package(rviz2 REQUIRED)
 
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
