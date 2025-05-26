@@ -66,9 +66,11 @@ void ObservationsServerNode::start()
 void ObservationsServerNode::robotPoseCallback()
 {
     // Get the robot pose from the transform listener
-    geometry_msgs::msg::TransformStamped transform;
-    try {
-        transform = tf_buffer_->lookupTransform("map", "pioneer3dx_odom", tf2::TimePointZero);
+    
+    if (tf_buffer_->canTransform("map", "pioneer3dx_base_link", rclcpp::Time(0), rclcpp::Duration(4, 0)))
+    {
+        geometry_msgs::msg::TransformStamped transform;
+        transform = tf_buffer_->lookupTransform("map", "pioneer3dx_base_link", rclcpp::Time(0),rclcpp::Duration(4, 0));
         robot_pose.x = transform.transform.translation.x;
         robot_pose.y = transform.transform.translation.y;
 
@@ -83,10 +85,10 @@ void ObservationsServerNode::robotPoseCallback()
         double roll, pitch, yaw;
         m.getRPY(roll, pitch, yaw);
         robot_pose.theta = yaw;
-
-    } catch (tf2::TransformException & ex) {
-        RCLCPP_WARN(this->get_logger(), "Could not get robot pose: %s", ex.what());
+    } else {
+        RCLCPP_WARN(this->get_logger(), "Transform from 'map' to 'pioneer3dx_base_link' not available");
     }
+
 }
 
 
