@@ -67,10 +67,10 @@ void ObservationsServerNode::robotPoseCallback()
 {
     // Get the robot pose from the transform listener
     
-    if (tf_buffer_->canTransform("map", "pioneer3dx_base_link", rclcpp::Time(0), rclcpp::Duration(4, 0)))
+    if (tf_buffer_->canTransform("map", "pioneer3dx_base_link", rclcpp::Time(0), rclcpp::Duration::from_seconds(1.0)))
     {
         geometry_msgs::msg::TransformStamped transform;
-        transform = tf_buffer_->lookupTransform("map", "pioneer3dx_base_link", rclcpp::Time(0),rclcpp::Duration(4, 0));
+        transform = tf_buffer_->lookupTransform("map", "pioneer3dx_base_link", rclcpp::Time(0), rclcpp::Duration::from_seconds(1.0));
         robot_pose.x = transform.transform.translation.x;
         robot_pose.y = transform.transform.translation.y;
 
