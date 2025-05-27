@@ -11,6 +11,7 @@
 #include "geometry_msgs/msg/pose2_d.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 
@@ -46,18 +47,21 @@ class ObservationsServerNode : public rclcpp::Node
 
         rclcpp::TimerBase::SharedPtr robot_pose_timer_;
         void robotPoseCallback();
+        bool pose_received = false;
 
 
         // 1)  Distance Goal
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_subscription_;
         void goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
         geometry_msgs::msg::Pose2D goal_pose;
+        bool goal_received = false;
         
 
         // 2)  Distance to next path marker
         // 3)  Relative Direction to next path marker
         rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_subscription_;
         void pathCallback(const nav_msgs::msg::Path::SharedPtr msg);
+        bool path_received = false;
         nav_msgs::msg::Path::SharedPtr path_;
         int path_index = 0;
         int checkPathIndex(int current_index, nav_msgs::msg::Path::SharedPtr path_, float distance_threshold = 0.3f); // TODO -> add distance threshold as parameter
@@ -67,8 +71,9 @@ class ObservationsServerNode : public rclcpp::Node
 
         // 4) Linear velocity
         // 5) Angular velocity
-        rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscription_;
-        void velocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg);
+        rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr velocity_subscription_;
+        void velocityCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
+        bool velocity_received;
 
         
         // 6) Closest distance sector 1 (1-12)
@@ -83,6 +88,7 @@ class ObservationsServerNode : public rclcpp::Node
         // 15) Closest distance sector 10 (109-120)
         rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_subscription_;
         void laserCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
+        bool laser_received = false;
         sensor_msgs::msg::LaserScan::SharedPtr laser_scan_msg_;
         std::vector<float> filterLaserRanges(const sensor_msgs::msg::LaserScan::SharedPtr msg);
 
@@ -91,6 +97,7 @@ class ObservationsServerNode : public rclcpp::Node
         rclcpp::Publisher<custom_interfaces::msg::Observations>::SharedPtr observations_publisher_;
         rclcpp::Publisher<custom_interfaces::msg::Observations>::SharedPtr normalized_observations_publisher_;
         rclcpp::TimerBase::SharedPtr observations_publisher_timer_;
+        bool all_data_received = false;
         void observationsPublisherTimerCallback();
         void updateObservations();
         void normalizeObservations();

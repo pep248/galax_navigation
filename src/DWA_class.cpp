@@ -3,10 +3,8 @@
 DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
 {   
     // Parameters
-    this->dwa_parameters_listener_ = std::make_shared<dwa_parameters_file::ParamListener>(this->shared_from_this());
-    this->dwa_parameters_ = std::make_shared<dwa_parameters_file::Params::DwaParams>();
-    this->robot_parameters_ = std::make_shared<dwa_parameters_file::Params::RobotConstantParams>();
-
+    this->file_parameters_listener_ = std::make_shared<dwa_parameters_file::ParamListener>(this->get_node_parameters_interface());
+    this->file_parameters_ = std::make_shared<dwa_parameters_file::Params>(this->file_parameters_listener_->get_params());
     this->dwa_parameters_instance_ = std::make_shared<DwaParametersClass>();
     this->robot_parameters_instance_ = std::make_shared<RobotParametersClass>();
 
@@ -18,6 +16,8 @@ DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
         "/dwa_parameters", 
         1,
         std::bind(&DwaNode::updateDwaCallback, this, std::placeholders::_1));
+    // ros2 topic pub /dwa_parameters custom_interfaces/msg/Dwa "{alpha: 0.4, beta: 0.4, gamma: 0.1, delta: 0.0}"
+    // ros2 topic pub /dwa_parameters custom_interfaces/msg/Dwa "{alpha: 0.0, beta: 0.0, gamma: 0.0, delta: 0.0}"
 
     this->observations_subscription_ = this->create_subscription<custom_interfaces::msg::Observations>(
         "/observations", 
@@ -34,11 +34,15 @@ DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
         1,
         std::bind(&DwaNode::lidarCallback, this, std::placeholders::_1));
 
+    // Initialize timer for DWA calculations
+    this->dwa_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(100), // Adjust the frequency as needed
+        std::bind(&DwaNode::dwaTimerCallback, this));
 
     // Initialize publishers
     this->cmd_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>(
-        "cmd_vel", 
-        rclcpp::QoS(10));
+        "/differential_controller/cmd_vel_unstamped", 
+        rclcpp::QoS(1));
 
 }
 
@@ -52,21 +56,23 @@ void DwaNode::start()
 void DwaNode::get_params()
 {
     // DWA parameters
-    this->dwa_parameters_instance_->alpha        = dwa_parameters_->alpha;
-    this->dwa_parameters_instance_->beta         = dwa_parameters_->beta;
-    this->dwa_parameters_instance_->gamma        = dwa_parameters_->gamma;
-    this->dwa_parameters_instance_->delta        = dwa_parameters_->delta;
-    this->dwa_parameters_instance_->time_horizon = dwa_parameters_->time_horizon;
-    this->dwa_parameters_instance_->n_samples    = dwa_parameters_->n_samples;
+    this->dwa_parameters_instance_->alpha        = this->file_parameters_->DWA_params.alpha;
+    this->dwa_parameters_instance_->beta         = this->file_parameters_->DWA_params.beta;
+    this->dwa_parameters_instance_->gamma        = this->file_parameters_->DWA_params.gamma;
+    this->dwa_parameters_instance_->delta        = this->file_parameters_->DWA_params.delta;
+    this->dwa_parameters_instance_->time_horizon = this->file_parameters_->DWA_params.time_horizon;
+    this->dwa_parameters_instance_->n_samples    = this->file_parameters_->DWA_params.n_samples;
 
     // Robot constant parameters
-    this->robot_parameters_instance_->mass      = robot_parameters_->mass;
-    this->robot_parameters_instance_->inertia   = robot_parameters_->inertia;
-    this->robot_parameters_instance_->max_speed = robot_parameters_->max_speed;
-    this->robot_parameters_instance_->max_accel = robot_parameters_->max_accel;
-    this->robot_parameters_instance_->max_omega = robot_parameters_->max_omega;
-    this->robot_parameters_instance_->max_alpha = robot_parameters_->max_alpha;
+    this->robot_parameters_instance_->mass      = this->file_parameters_->robot_constant_params.mass;
+    this->robot_parameters_instance_->inertia   = this->file_parameters_->robot_constant_params.inertia;
+    this->robot_parameters_instance_->max_speed = this->file_parameters_->robot_constant_params.max_speed;
+    this->robot_parameters_instance_->max_accel = this->file_parameters_->robot_constant_params.max_accel;
+    this->robot_parameters_instance_->max_omega = this->file_parameters_->robot_constant_params.max_omega;
+    this->robot_parameters_instance_->max_alpha = this->file_parameters_->robot_constant_params.max_alpha;
 
+    RCLCPP_INFO(get_logger(), "DWA parameters loaded:");
+    
 }
 
 
@@ -127,9 +133,9 @@ geometry_msgs::msg::Twist DwaNode::calculateDWA()
     float omega_min = std::max(-robot.max_omega, -robot.max_omega - robot.max_alpha * dwa.time_horizon);
 
     // Sampling
-    int N = dwa.n_samples;
-    float deltaV = (v_max - v_min) / std::max(1, N-1);
-    float deltaW = (omega_max - omega_min) / std::max(1, N-1);
+    int N = dwa.n_samples-1;
+    float deltaV = (v_max - v_min) / std::max(1, N);
+    float deltaW = (omega_max - omega_min) / std::max(1, N);
 
     float best_score = -1e9;
     float v_opt = 0.0, omega_opt = 0.0;
@@ -140,7 +146,7 @@ geometry_msgs::msg::Twist DwaNode::calculateDWA()
         for (int j = 0; j <= N; ++j)
         {
             float omega = omega_min + j * deltaW;
-            RCLCPP_INFO(this->get_logger(), "Evaluating v: %.2f, omega: %.2f", v, omega);
+            // RCLCPP_INFO(this->get_logger(), "Evaluating v: %.2f, omega: %.2f", v, omega);
             // Simulate motion
             float theta_sim, x_sim, y_sim;
             float theta = 0;
@@ -180,6 +186,9 @@ geometry_msgs::msg::Twist DwaNode::calculateDWA()
                            dwa.beta * obstacle_score +
                            dwa.gamma * velocity_score +
                            dwa.delta * energy_score;
+
+            // RCLCPP_INFO(get_logger(), "Scores - Heading: %.2f, Obstacle: %.2f, Velocity: %.2f, Energy: %.2f, Total: %.2f",
+            //             heading_score, obstacle_score, velocity_score, energy_score, score);
 
             if (score > best_score)
             {

@@ -14,9 +14,10 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
         std::chrono::milliseconds(100),
         std::bind(&ObservationsServerNode::robotPoseCallback, this));
 
+
     // 1)  Distance Goal
     this->goal_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-        "goal",
+        "/goal_pose",
         1,
         std::bind(&ObservationsServerNode::goalCallback, this, std::placeholders::_1));
 
@@ -29,7 +30,7 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
 
     // 4) Linear velocity
     // 5) Angular velocity
-    this->velocity_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>(
+    this->velocity_subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
         "/differential_controller/odom",
         1,
         std::bind(&ObservationsServerNode::velocityCallback, this, std::placeholders::_1));
@@ -67,28 +68,27 @@ void ObservationsServerNode::robotPoseCallback()
 {
     // Get the robot pose from the transform listener
     
-    if (tf_buffer_->canTransform("map", "pioneer3dx_base_link", rclcpp::Time(0), rclcpp::Duration::from_seconds(1.0)))
-    {
-        geometry_msgs::msg::TransformStamped transform;
-        transform = tf_buffer_->lookupTransform("map", "pioneer3dx_base_link", rclcpp::Time(0), rclcpp::Duration::from_seconds(1.0));
-        robot_pose.x = transform.transform.translation.x;
-        robot_pose.y = transform.transform.translation.y;
-
-        // Convert quaternion to yaw (theta)
-        tf2::Quaternion q(
-            transform.transform.rotation.x,
-            transform.transform.rotation.y,
-            transform.transform.rotation.z,
-            transform.transform.rotation.w
-        );
-        tf2::Matrix3x3 m(q);
-        double roll, pitch, yaw;
-        m.getRPY(roll, pitch, yaw);
-        robot_pose.theta = yaw;
-    } else {
-        RCLCPP_WARN(this->get_logger(), "Transform from 'map' to 'pioneer3dx_base_link' not available");
+    while (!tf_buffer_->canTransform("map", "pioneer3dx_base_link", rclcpp::Time(0), rclcpp::Duration::from_seconds(1.0))) {
+        RCLCPP_INFO(this->get_logger(), "Waiting for transform map -> pioneer3dx_base_link...");
+        rclcpp::sleep_for(std::chrono::milliseconds(1000));
     }
+    geometry_msgs::msg::TransformStamped transform;
+    transform = tf_buffer_->lookupTransform("map", "pioneer3dx_base_link", rclcpp::Time(0), rclcpp::Duration::from_seconds(1.0));
+    robot_pose.x = transform.transform.translation.x;
+    robot_pose.y = transform.transform.translation.y;
 
+    // Convert quaternion to yaw (theta)
+    tf2::Quaternion q(
+        transform.transform.rotation.x,
+        transform.transform.rotation.y,
+        transform.transform.rotation.z,
+        transform.transform.rotation.w
+    );
+    tf2::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+    robot_pose.theta = yaw;
+    this->pose_received = true;
 }
 
 
@@ -97,6 +97,7 @@ void ObservationsServerNode::goalCallback(const geometry_msgs::msg::PoseStamped:
 {
     this->goal_pose.x = msg->pose.position.x;
     this->goal_pose.y = msg->pose.position.y;
+    this->goal_received = true;
 }
 
 
@@ -109,6 +110,7 @@ void ObservationsServerNode::pathCallback(const nav_msgs::msg::Path::SharedPtr m
         this->path_index = 0;
         this->path_index = this->checkPathIndex(this->path_index, this->path_, 0.3f); // TODO -> add distance threshold as parameter
     }
+    this->path_received = true;
 }
 
 
@@ -180,9 +182,11 @@ float ObservationsServerNode::getMarkerOrientation(int index, nav_msgs::msg::Pat
 
 
 // Velocity callback
-void ObservationsServerNode::velocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
+void ObservationsServerNode::velocityCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
-    this->robot_velocity = *msg;
+    
+    this->robot_velocity = msg->twist.twist;
+    this->velocity_received = true;
 }
 
 
@@ -191,6 +195,7 @@ void ObservationsServerNode::laserCallback(const sensor_msgs::msg::LaserScan::Sh
 {
     // Assign the laser scan message to the laser_scan_msg_ variable
     this->laser_scan_msg_ = msg;
+    this->laser_received = true;
 }
 
 
@@ -216,10 +221,44 @@ std::vector<float> ObservationsServerNode::filterLaserRanges(const sensor_msgs::
 // Observations publisher timer callback
 void ObservationsServerNode::observationsPublisherTimerCallback()
 {
-    this->updateObservations();
-    this->normalizeObservations();
-    this->publishObservations();
-    this->publishNormalizedObservations();
+    if (this->all_data_received == true)
+    {
+        this->updateObservations();
+        this->normalizeObservations();
+        this->publishObservations();
+        this->publishNormalizedObservations();
+    }
+    else
+    {
+        if (this->pose_received && this->goal_received && this->path_received && this->velocity_received && this->laser_received)
+        {
+            RCLCPP_INFO(this->get_logger(), "All data received, starting observations update.");
+            this->all_data_received = true;
+        }
+        else
+        {
+            if (!this->pose_received)
+            {
+                RCLCPP_WARN(this->get_logger(), "Pose data not received yet.");
+            }
+            if (!this->goal_received)
+            {
+                RCLCPP_WARN(this->get_logger(), "Goal data not received yet.");
+            }
+            if (!this->path_received)
+            {
+                RCLCPP_WARN(this->get_logger(), "Path data not received yet.");
+            }
+            if (!this->velocity_received)
+            {
+                RCLCPP_WARN(this->get_logger(), "Velocity data not received yet.");
+            }
+            if (!this->laser_received)
+            {
+                RCLCPP_WARN(this->get_logger(), "Laser scan data not received yet.");
+            }
+        }
+    }
 }
 
 
@@ -275,7 +314,7 @@ void ObservationsServerNode::normalizeObservations()
     for (size_t i = 0; i < this->observations.closest_distance_sector.size(); ++i)
     {
         this->normalized_observations.closest_distance_sector[i] =
-            std::min(this->observations.closest_distance_sector[i] / lidar_max_range, 1.0f);
+            std::min(this->observations.closest_distance_sector[i] / (lidar_max_range/6.0f), 1.0f);
     }
 }
 

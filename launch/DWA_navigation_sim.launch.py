@@ -17,13 +17,12 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import (DeclareLaunchArgument, GroupAction,
-                            IncludeLaunchDescription, SetEnvironmentVariable)
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription, SetEnvironmentVariable, TimerAction
+                            
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PythonExpression
-from launch_ros.actions import Node
-from launch_ros.actions import PushRosNamespace
+from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.descriptions import ParameterFile
 from nav2_common.launch import RewrittenYaml, ReplaceString
 
@@ -166,6 +165,19 @@ def generate_launch_description():
         
     ])
     
+    # Add a static transform publisher to set the initial robot position
+    static_tf = Node(
+        package='galax_navigation',
+        executable='initial_pose_publisher.py',
+        name='initial_pose_publisher',
+        output='screen',
+    )
+    delayed_static_tf = TimerAction(
+        period=15.0,
+        actions=[static_tf]
+    )
+    
+    # Initialize the robot
     robot_bringup = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('galax_bringup'),
@@ -173,6 +185,7 @@ def generate_launch_description():
             'launch_sim_robot.launch.py'
         )]))
     
+    # Include the path planning service
     path_planning = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('path_planning_package'),
@@ -180,6 +193,7 @@ def generate_launch_description():
             'path_planning_service_cpp.launch.py'
         )]))
     
+    # Include RViz for visualization
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
@@ -188,8 +202,18 @@ def generate_launch_description():
         arguments=['-d', os.path.join(
             navigation_package_dir,
             'rviz',  # Folder containing RViz config (optional)
-            'navigation.rviz')]  # Optional pre-saved RViz config file
+            'DWA_navigation_2.rviz')]  # Optional pre-saved RViz config file
     )
+    
+    # Start the navigation DWA node
+    dwa_node = Node(
+        package='galax_navigation',
+        executable='DWA_node',
+        name='DWA_node',
+        output='screen',
+    )
+    
+
 
     # Create the launch description and populate
     ld = LaunchDescription()
@@ -211,9 +235,12 @@ def generate_launch_description():
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(bringup_cmd_group)
+    ld.add_action(delayed_static_tf)
     
     ld.add_action(robot_bringup)
     ld.add_action(path_planning)
     ld.add_action(rviz_node)
+    # ld.add_action(dwa_node)
+    
 
     return ld

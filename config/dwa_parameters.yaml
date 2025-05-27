@@ -8,10 +8,10 @@ dwa_parameters_file:
       default_value: 0.0
     gamma:
       type: double
-      default_value: 1.0
+      default_value: 0.0
     delta:
       type: double
-      default_value: 0.0
+      default_value: 1.0
     time_horizon:
       type: double
       default_value: 1.0
@@ -34,7 +34,7 @@ dwa_parameters_file:
       default_value: 1.0
     max_omega:
       type: double
-      default_value: 1.2
+      default_value: 0.6
     max_alpha:
       type: double
       default_value: 3.0

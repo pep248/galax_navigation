@@ -52,15 +52,14 @@ install(TARGETS DWA_node
 )
 
 
-# # PYTHON
-# # Install Python modules
-# ament_python_install_package(${PROJECT_NAME})
-# # Install Python executables
-# install(PROGRAMS
-#   scripts/publisher.py
-#   scripts/subscriber.py
-#   DESTINATION lib/${PROJECT_NAME}
-# )
+# PYTHON
+# Install Python modules
+ament_python_install_package(${PROJECT_NAME})
+# Install Python executables
+install(PROGRAMS
+  scripts/initial_pose_publisher.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 
 # COPY A PARTICULAR FOLDER TO THE INSTALL DIRECTORY

@@ -54,9 +54,8 @@ class DwaNode : public rclcpp::Node
 
 
         // Parameters
-        std::shared_ptr<dwa_parameters_file::ParamListener> dwa_parameters_listener_;
-        std::shared_ptr<dwa_parameters_file::Params::DwaParams> dwa_parameters_;
-        std::shared_ptr<dwa_parameters_file::Params::RobotConstantParams> robot_parameters_;
+        std::shared_ptr<dwa_parameters_file::ParamListener> file_parameters_listener_;
+        std::shared_ptr<dwa_parameters_file::Params> file_parameters_;
 
         std::shared_ptr<DwaParametersClass> dwa_parameters_instance_;
         std::shared_ptr<RobotParametersClass> robot_parameters_instance_;
@@ -88,7 +87,7 @@ class DwaNode : public rclcpp::Node
 
 
         // Timers
-        rclcpp::TimerBase::SharedPtr DWA_timer_;
+        rclcpp::TimerBase::SharedPtr dwa_timer_;
         void dwaTimerCallback();
 
 
