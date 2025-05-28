@@ -1,7 +1,7 @@
 #include <thread>
 #include <vector>
 
-#include <galax_navigation/DWA_class.hpp>
+// #include <galax_navigation/DWA_class.hpp>
 #include "galax_navigation/observations_server_class.hpp"
 
 void executor_spin(std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> executor)
@@ -20,8 +20,8 @@ int main(int argc, char ** argv)
     std::vector<std::shared_ptr<rclcpp::Node>> nodes;
 
     // Create and add nodes to the executor
-    nodes.push_back(std::make_shared<DwaNode>("dwa_node"));
-    //nodes.push_back(std::make_shared<ObservationsServerNode>("observations_server_node"));
+    //nodes.push_back(std::make_shared<DwaNode>("dwa_node"));
+    nodes.push_back(std::make_shared<ObservationsServerNode>("observations_server_node"));
     for (auto & node : nodes)
     {
         executor->add_node(node);

@@ -76,14 +76,17 @@ class DwaNode : public rclcpp::Node
         rclcpp::Subscription<custom_interfaces::msg::Observations>::SharedPtr observations_subscription_;
         void observationsCallback(
             const custom_interfaces::msg::Observations::SharedPtr msg);
+        bool observations_ready_ = false;
 
         rclcpp::Subscription<custom_interfaces::msg::Observations>::SharedPtr normalized_observations_subscription_;
         void normalizedObservationsCallback(
             const custom_interfaces::msg::Observations::SharedPtr msg);
+        bool normalized_observations_ready_ = false;
 
         rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_subscription_;
         void lidarCallback(
             const sensor_msgs::msg::LaserScan::SharedPtr msg);
+        bool lidar_data_ready_ = false;
         sensor_msgs::msg::LaserScan::SharedPtr lidar_data_;
 
 
@@ -95,6 +98,7 @@ class DwaNode : public rclcpp::Node
         // Timers
         rclcpp::TimerBase::SharedPtr dwa_timer_;
         void dwaTimerCallback();
+        bool all_data_received = false;
 
 
         // DWA Algorithm

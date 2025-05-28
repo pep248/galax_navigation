@@ -32,15 +32,22 @@ ament_auto_find_build_dependencies()
 
 
 # C++
-# DWA parameters
-generate_parameter_library(dwa_parameters_file # cmake target name for the parameter library
-  config/dwa_parameters.yaml # path to input yaml file
-)
-# Generate Parameter Library
+# DWA Node
 ament_auto_add_executable(DWA_node
   src/DWA_node.cpp
   src/DWA_class.cpp
+  # src/observations_server_class.cpp
+)
+# DWA Node
+ament_auto_add_executable(observations_server_node
+  src/observations_server_node.cpp
+  # src/DWA_class.cpp
   src/observations_server_class.cpp
+)
+# Generate Parameter Library
+# DWA parameters
+generate_parameter_library(dwa_parameters_file # cmake target name for the parameter library
+  config/dwa_parameters.yaml # path to input yaml file
 )
 target_link_libraries(DWA_node
   dwa_parameters_file

@@ -34,7 +34,7 @@ dwa_parameters_file:
       default_value: 1.0
     max_omega:
       type: double
-      default_value: 0.6
+      default_value: 1.2
     max_alpha:
       type: double
       default_value: 3.0

@@ -192,6 +192,10 @@ def generate_launch_description():
             'launch', 
             'path_planning_service_cpp.launch.py'
         )]))
+    delayed_path_planning = TimerAction(
+        period=20.0,
+        actions=[path_planning]
+    )
     
     # Include RViz for visualization
     rviz_node = Node(
@@ -238,7 +242,7 @@ def generate_launch_description():
     ld.add_action(delayed_static_tf)
     
     ld.add_action(robot_bringup)
-    ld.add_action(path_planning)
+    ld.add_action(delayed_path_planning)
     ld.add_action(rviz_node)
     # ld.add_action(dwa_node)
     

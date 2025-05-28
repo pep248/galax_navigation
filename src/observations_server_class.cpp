@@ -10,13 +10,10 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
     
     // Initialize transform listener
     this->tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-    RCLCPP_INFO(get_logger(), "tf_buffer_ initialized");
     this->tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-    RCLCPP_INFO(get_logger(), "tf_listener_ initialized");
     this->robot_pose_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&ObservationsServerNode::robotPoseCallback, this));
-    RCLCPP_INFO(get_logger(), "robot_pose_timer_ initialized");
 
     // 1)  Distance Goal
     this->goal_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -51,6 +48,9 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
         
     this->normalized_observations_publisher_ = this->create_publisher<custom_interfaces::msg::Observations>(
         "/normalized_observations",
+        1);
+    this->robot_dwa_publisher_ = this->create_publisher<custom_interfaces::msg::Dwa>(
+        "/dwa_parameters",
         1);
 
     this->observations_publisher_timer_ = this->create_wall_timer(
@@ -143,7 +143,25 @@ int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Pat
     // If the current index is the last index, check if the distance is less than the threshold
     else if (current_index == path_->poses.size() - 1)
     {
-        return this->checkPathIndex(current_index + 1, path_, distance_threshold);
+        //check if the final marker in path is within the distance threshold
+        if (distance < distance_threshold)
+        {
+            // If the distance is less than the threshold update the dwa parameters to stop the robot
+            custom_interfaces::msg::Dwa msg;
+            msg.alpha = 0.0f;
+            msg.beta = 0.0f;
+            msg.gamma = 0.0f;
+            msg.delta = 1.0f; // Set delta to 1.0 to stop the robot
+            this->robot_dwa_publisher_->publish(msg); 
+            RCLCPP_INFO(this->get_logger(), "Reached the final marker in path, stopping the robot.");
+        }
+        else
+        {
+            // If the distance is greater than the threshold, stay at the current index
+            return this->checkPathIndex(current_index + 1, path_, distance_threshold);
+        }
+
+        
     }
     else
     {

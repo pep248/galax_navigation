@@ -23,6 +23,7 @@
 
 // ===== Custom parameters and project-specific headers =====
 #include <custom_interfaces/msg/observations.hpp>
+#include <custom_interfaces/msg/dwa.hpp>
 #include <galax_navigation/observations_class.hpp>
 
 
@@ -96,6 +97,7 @@ class ObservationsServerNode : public rclcpp::Node
         // Publishers
         rclcpp::Publisher<custom_interfaces::msg::Observations>::SharedPtr observations_publisher_;
         rclcpp::Publisher<custom_interfaces::msg::Observations>::SharedPtr normalized_observations_publisher_;
+        rclcpp::Publisher<custom_interfaces::msg::Dwa>::SharedPtr robot_dwa_publisher_;
         rclcpp::TimerBase::SharedPtr observations_publisher_timer_;
         bool all_data_received = false;
         void observationsPublisherTimerCallback();

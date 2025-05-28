@@ -2,6 +2,9 @@
 
 DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
 {   
+
+    RCLCPP_INFO(get_logger(), "DwaNode initialized");
+
     // Parameters
     this->file_parameters_listener_ = std::make_shared<dwa_parameters_file::ParamListener>(this->get_node_parameters_interface());
     this->file_parameters_ = std::make_shared<dwa_parameters_file::Params>(this->file_parameters_listener_->get_params());
@@ -16,7 +19,7 @@ DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
         "/dwa_parameters", 
         1,
         std::bind(&DwaNode::updateDwaCallback, this, std::placeholders::_1));
-    // ros2 topic pub /dwa_parameters custom_interfaces/msg/Dwa "{alpha: 0.8, beta: 0.2, gamma: 0.0, delta: 0.0}"
+    // ros2 topic pub /dwa_parameters custom_interfaces/msg/Dwa "{alpha: 0.8, beta: 0.2, gamma: 0.1, delta: 0.0}"
     // ros2 topic pub /dwa_parameters custom_interfaces/msg/Dwa "{alpha: 0.0, beta: 0.0, gamma: 0.0, delta: 0.0}"
 
     this->observations_subscription_ = this->create_subscription<custom_interfaces::msg::Observations>(
@@ -27,7 +30,7 @@ DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
     this->normalized_observations_subscription_ = this->create_subscription<custom_interfaces::msg::Observations>(
         "/normalized_observations", 
         1,
-        std::bind(&DwaNode::observationsCallback, this, std::placeholders::_1));
+        std::bind(&DwaNode::normalizedObservationsCallback, this, std::placeholders::_1));
 
     this->lidar_subscription_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
         "/scan", 
@@ -86,54 +89,81 @@ void DwaNode::updateDwaCallback(const custom_interfaces::msg::Dwa::SharedPtr msg
     this->dwa_parameters_instance_->beta         = msg->beta;
     this->dwa_parameters_instance_->gamma        = msg->gamma;
     this->dwa_parameters_instance_->delta        = msg->delta;
+    RCLCPP_INFO(get_logger(), "DWA parameters updated: alpha=%.2f, beta=%.2f, gamma=%.2f, delta=%.2f",
+                msg->alpha, msg->beta, msg->gamma, msg->delta);
     
 }
 
 
 void DwaNode::observationsCallback(const custom_interfaces::msg::Observations::SharedPtr msg)
-{
+{ 
     this->observations_ = msg;
+    this->observations_ready_ = true;
 }
 
 
 void DwaNode::normalizedObservationsCallback(const custom_interfaces::msg::Observations::SharedPtr msg)
 {
     this->normalized_observations_ = msg;
+    this->normalized_observations_ready_ = true;
 }
 
 
 void DwaNode::lidarCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 {
     this->lidar_data_ = msg;
+    this->lidar_data_ready_ = true;
 }
 
 
 // DWA
 void DwaNode::dwaTimerCallback()
 {
-    // Check if data from observations, normalized_observations and lidar is available
-    if (!this->observations_ || !this->normalized_observations_ || !this->lidar_data_) {
-        RCLCPP_WARN(this->get_logger(), "Waiting for observations, normalized observations, or lidar data.");
-        return; // Not enough data to perform DWA
+
+    if (this->all_data_received == true)
+    {
+        // Calculate the DWA command
+        geometry_msgs::msg::Twist cmd_vel = this->calculateDWA();
+
+        // TODO
+        // Implement a velocity smoother here
+        // For now, just publish the command directly
+
+        // Publish the command
+        this->cmd_publisher_->publish(cmd_vel);
     }
     else
     {
-        RCLCPP_INFO(this->get_logger(), "DWA ready to calculate command.");
+        if (this->observations_ready_ && this->normalized_observations_ready_ && this->lidar_data_ready_)
+        {
+            RCLCPP_INFO(this->get_logger(), "All data received, starting DWA calculations.");
+            this->all_data_received = true;
+        }
+        else
+        {
+            if (!this->observations_ready_)
+            {
+                RCLCPP_WARN(this->get_logger(), "Observations data not received yet.");
+            }
+            if (!this->normalized_observations_ready_)
+            {
+                RCLCPP_WARN(this->get_logger(), "Normalized observations data not received yet.");
+            }
+            if (!this->lidar_data_ready_)
+            {
+                RCLCPP_WARN(this->get_logger(), "Lidar data not received yet.");
+            }
+            
+        }
     }
-    // Calculate the DWA command
-    geometry_msgs::msg::Twist cmd_vel = this->calculateDWA();
 
-    // TODO
-    // Implement a velocity smoother here
-    // For now, just publish the command directly
-
-    // Publish the command
-    this->cmd_publisher_->publish(cmd_vel);
 }
 
 
 geometry_msgs::msg::Twist DwaNode::calculateDWA()
 {
+    RCLCPP_WARN(get_logger(), "Calculating DWA...");
+    
     // Get robot and DWA parameters
     auto& robot = *this->robot_parameters_instance_; // Reference to robot parameters
     auto& dwa = *this->dwa_parameters_instance_; // Reference to DWA parameters
@@ -245,6 +275,8 @@ geometry_msgs::msg::Twist DwaNode::calculateDWA()
     geometry_msgs::msg::Twist cmd_vel;
     cmd_vel.linear.x = v_opt;
     cmd_vel.angular.z = omega_opt;
+
+    RCLCPP_WARN(get_logger(), "Calculated");
     return cmd_vel;
 }
 
