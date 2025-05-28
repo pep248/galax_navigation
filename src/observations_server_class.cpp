@@ -160,13 +160,12 @@ int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Pat
             // If the distance is greater than the threshold, stay at the current index
             return this->checkPathIndex(current_index + 1, path_, distance_threshold);
         }
-
-        
     }
     else
     {
         return current_index;
     }
+    return current_index; // fallback
 }
 
 

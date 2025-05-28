@@ -28,13 +28,13 @@ dwa_parameters_file:
       default_value: 1.0
     max_speed:
       type: double
-      default_value: 1.0
+      default_value: 0.4
     max_accel:
       type: double
       default_value: 1.0
     max_omega:
       type: double
-      default_value: 1.2
+      default_value: 1.5
     max_alpha:
       type: double
       default_value: 3.0
