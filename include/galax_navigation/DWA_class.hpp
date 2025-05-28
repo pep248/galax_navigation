@@ -12,6 +12,11 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
+#include "sensor_msgs/msg/point_cloud2.hpp"
+#include "pcl_conversions/pcl_conversions.h"
+#include "pcl/point_cloud.h"
+#include "pcl/point_types.h"
+
 
 // ===== Custom parameters and project-specific headers =====
 #include <custom_interfaces/msg/dwa.hpp>
@@ -84,6 +89,7 @@ class DwaNode : public rclcpp::Node
 
         // Publishers
         rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_publisher_;
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr dwa_map_publisher_;
 
 
         // Timers

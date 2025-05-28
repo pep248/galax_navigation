@@ -6,14 +6,17 @@
 ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
  : Node(node_name)
 {
-
+    RCLCPP_INFO(get_logger(), "ObservationsServerNode initialized");
+    
     // Initialize transform listener
     this->tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+    RCLCPP_INFO(get_logger(), "tf_buffer_ initialized");
     this->tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+    RCLCPP_INFO(get_logger(), "tf_listener_ initialized");
     this->robot_pose_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&ObservationsServerNode::robotPoseCallback, this));
-
+    RCLCPP_INFO(get_logger(), "robot_pose_timer_ initialized");
 
     // 1)  Distance Goal
     this->goal_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -49,7 +52,6 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
     this->normalized_observations_publisher_ = this->create_publisher<custom_interfaces::msg::Observations>(
         "/normalized_observations",
         1);
-
 
     this->observations_publisher_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
