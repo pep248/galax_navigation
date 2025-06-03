@@ -83,61 +83,61 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        pioneer3dx_back_sonar:
+        galax_back_sonar:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        pioneer3dx_base_link:
+        galax_base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        pioneer3dx_caster_hubcap:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        pioneer3dx_caster_swivel:
+        galax_caster_hubcap:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        pioneer3dx_caster_wheel:
+        galax_caster_swivel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        pioneer3dx_front_sonar:
+        galax_caster_wheel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        pioneer3dx_left_hub:
+        galax_front_sonar:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        pioneer3dx_left_wheel:
+        galax_left_hub:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        pioneer3dx_real_base_link:
+        galax_left_wheel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        pioneer3dx_right_hub:
+        galax_real_base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        pioneer3dx_right_wheel:
+        galax_right_hub:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        pioneer3dx_top_plate:
+        galax_right_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        galax_top_plate:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -161,31 +161,31 @@ Visualization Manager:
           Value: true
         map:
           Value: true
-        pioneer3dx_back_sonar:
+        galax_back_sonar:
           Value: false
-        pioneer3dx_base_link:
+        galax_base_link:
           Value: true
-        pioneer3dx_caster_hubcap:
+        galax_caster_hubcap:
           Value: false
-        pioneer3dx_caster_swivel:
+        galax_caster_swivel:
           Value: false
-        pioneer3dx_caster_wheel:
+        galax_caster_wheel:
           Value: true
-        pioneer3dx_front_sonar:
+        galax_front_sonar:
           Value: false
-        pioneer3dx_left_hub:
+        galax_left_hub:
           Value: false
-        pioneer3dx_left_wheel:
+        galax_left_wheel:
           Value: true
-        pioneer3dx_odom:
+        galax_odom:
           Value: true
-        pioneer3dx_real_base_link:
+        galax_real_base_link:
           Value: true
-        pioneer3dx_right_hub:
+        galax_right_hub:
           Value: false
-        pioneer3dx_right_wheel:
+        galax_right_wheel:
           Value: true
-        pioneer3dx_top_plate:
+        galax_top_plate:
           Value: true
       Marker Scale: 1
       Name: TF
@@ -194,20 +194,20 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
-          pioneer3dx_odom:
-            pioneer3dx_base_link:
-              pioneer3dx_real_base_link:
-                pioneer3dx_back_sonar:
+          galax_odom:
+            galax_base_link:
+              galax_real_base_link:
+                galax_back_sonar:
                   {}
-                pioneer3dx_front_sonar:
+                galax_front_sonar:
                   {}
-                pioneer3dx_left_hub:
-                  pioneer3dx_left_wheel:
+                galax_left_hub:
+                  galax_left_wheel:
                     {}
-                pioneer3dx_right_hub:
-                  pioneer3dx_right_wheel:
+                galax_right_hub:
+                  galax_right_wheel:
                     {}
-                pioneer3dx_top_plate:
+                galax_top_plate:
                   hokuyo_laser_mount:
                     hokuyo_laser:
                       {}

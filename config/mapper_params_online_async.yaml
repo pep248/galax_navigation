@@ -10,9 +10,9 @@ slam_toolbox:
     ceres_loss_function: None
 
     # ROS Parameters
-    odom_frame: pioneer3dx_odom
+    odom_frame: galax_odom
     map_frame: map
-    base_frame: pioneer3dx_base_link
+    base_frame: galax_base_link
     scan_topic: /scan
     use_map_saver: true
     mode: mapping #localization

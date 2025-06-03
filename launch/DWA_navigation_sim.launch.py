@@ -125,7 +125,7 @@ def generate_launch_description():
         description='log level')
 
     # Specify the actions
-    bringup_cmd_group = GroupAction([
+    bringup_navigation_group = GroupAction([
         PushRosNamespace(
             condition=IfCondition(use_namespace),
             namespace=namespace),
@@ -209,12 +209,28 @@ def generate_launch_description():
             'DWA_navigation_2.rviz')]  # Optional pre-saved RViz config file
     )
     
+    # Start the observation server node
+    observation_server = Node(
+        package='galax_navigation',
+        executable='observation_server_node',
+        name='observation_server_node',
+        output='screen',
+    )
+    delayed_observation_server = TimerAction(
+        period=20.0,
+        actions=[observation_server]
+    )
+    
     # Start the navigation DWA node
     dwa_node = Node(
         package='galax_navigation',
         executable='DWA_node',
         name='DWA_node',
         output='screen',
+    )
+    delayed_dwa = TimerAction(
+        period=20.0,
+        actions=[dwa_node]
     )
     
 
@@ -238,13 +254,14 @@ def generate_launch_description():
     ld.add_action(declare_log_level_cmd)
 
     # Add the actions to launch all of the navigation nodes
-    ld.add_action(bringup_cmd_group)
+    ld.add_action(bringup_navigation_group)
     ld.add_action(delayed_static_tf)
     
     ld.add_action(robot_bringup)
     ld.add_action(delayed_path_planning)
     ld.add_action(rviz_node)
-    # ld.add_action(dwa_node)
+    # ld.add_action(delayed_observation_server)
+    # ld.add_action(delayed_dwa)
     
 
     return ld

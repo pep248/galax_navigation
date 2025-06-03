@@ -247,7 +247,7 @@ geometry_msgs::msg::Twist DwaNode::calculateDWA()
 
     // Create a PCL point cloud
     pcl::PointCloud<pcl::PointXYZI> pcl_cloud;
-    pcl_cloud.header.frame_id = "pioneer3dx_base_link";
+    pcl_cloud.header.frame_id = "galax_base_link";
     pcl_cloud.is_dense = true;
 
     for (const auto& [x, y, z, score] : dwa_points)
@@ -266,7 +266,7 @@ geometry_msgs::msg::Twist DwaNode::calculateDWA()
     sensor_msgs::msg::PointCloud2 pointcloud_msg;
     pcl::toROSMsg(pcl_cloud, pointcloud_msg);
     pointcloud_msg.header.stamp = this->now();
-    pointcloud_msg.header.frame_id = "pioneer3dx_base_link";
+    pointcloud_msg.header.frame_id = "galax_base_link";
 
     // Publish
     this->dwa_map_publisher_->publish(pointcloud_msg);
