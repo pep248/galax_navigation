@@ -133,11 +133,13 @@ int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Pat
     if (distance < distance_threshold && current_index < path_->poses.size() - 1)
     {
         // Move to the next index
+        RCLCPP_INFO(this->get_logger(), "Marker %d has been reached", current_index);
         return this->checkPathIndex(current_index + 1, path_, distance_threshold);
     }
     // If the distance is greater than the threshold, stay at the current index
     else if (distance >= distance_threshold && current_index < path_->poses.size() - 1)
     {
+        RCLCPP_INFO(this->get_logger(), "C Looking for marker %d", current_index);
         return current_index;
     }
     // If the current index is the last index, check if the distance is less than the threshold
@@ -158,11 +160,13 @@ int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Pat
         else
         {
             // If the distance is greater than the threshold, stay at the current index
-            return this->checkPathIndex(current_index + 1, path_, distance_threshold);
+            RCLCPP_INFO(this->get_logger(), "B Looking for marker %d", current_index);
+            return this->checkPathIndex(current_index, path_, distance_threshold);
         }
     }
     else
     {
+        RCLCPP_INFO(this->get_logger(), "A Looking for marker %d", current_index);
         return current_index;
     }
     return current_index; // fallback

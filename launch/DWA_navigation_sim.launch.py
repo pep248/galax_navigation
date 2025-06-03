@@ -212,8 +212,8 @@ def generate_launch_description():
     # Start the observation server node
     observation_server = Node(
         package='galax_navigation',
-        executable='observation_server_node',
-        name='observation_server_node',
+        executable='observations_server_node',
+        name='observations_server_node',
         output='screen',
     )
     delayed_observation_server = TimerAction(
@@ -258,10 +258,10 @@ def generate_launch_description():
     ld.add_action(delayed_static_tf)
     
     ld.add_action(robot_bringup)
-    # ld.add_action(delayed_path_planning)
-    # ld.add_action(rviz_node)
+    ld.add_action(delayed_path_planning)
+    ld.add_action(rviz_node)
     # ld.add_action(delayed_observation_server)
-    # ld.add_action(delayed_dwa)
+    ld.add_action(delayed_dwa)
     
 
     return ld
