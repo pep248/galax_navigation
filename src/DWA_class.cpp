@@ -44,7 +44,7 @@ DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
 
     // Initialize publishers
     this->cmd_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>(
-        "/differential_controller/cmd_vel_unstamped", 
+        "/diff_cont/cmd_vel_unstamped", 
         rclcpp::QoS(1));
     this->dwa_map_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
         "/DWA/pointcloud2",

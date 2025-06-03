@@ -31,7 +31,7 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
     // 4) Linear velocity
     // 5) Angular velocity
     this->velocity_subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/differential_controller/odom",
+        "/diff_cont/odom",
         1,
         std::bind(&ObservationsServerNode::velocityCallback, this, std::placeholders::_1));
 

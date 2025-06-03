@@ -372,7 +372,7 @@ velocity_smoother:
     min_velocity: [-0.2, 0.0, -0.15]
     max_accel: [3.0, 0.0, 1.0]
     max_decel: [-1.0, 0.0, -1.0]
-    odom_topic: "/differential_controller/odom"
+    odom_topic: "/diff_cont/odom"
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0

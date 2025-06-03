@@ -258,8 +258,8 @@ def generate_launch_description():
     ld.add_action(delayed_static_tf)
     
     ld.add_action(robot_bringup)
-    ld.add_action(delayed_path_planning)
-    ld.add_action(rviz_node)
+    # ld.add_action(delayed_path_planning)
+    # ld.add_action(rviz_node)
     # ld.add_action(delayed_observation_server)
     # ld.add_action(delayed_dwa)
     
