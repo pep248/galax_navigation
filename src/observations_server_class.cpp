@@ -110,7 +110,7 @@ void ObservationsServerNode::pathCallback(const nav_msgs::msg::Path::SharedPtr m
     if (path_->poses.size() > 0)
     {
         this->path_index = 0;
-        this->path_index = this->checkPathIndex(this->path_index, this->path_, 0.3f); // TODO -> add distance threshold as parameter
+        this->path_index = this->checkPathIndex(this->path_index, this->path_, 0.5f); // TODO -> add distance threshold as parameter
     }
     this->path_received = true;
 }
@@ -146,22 +146,26 @@ int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Pat
     else if (current_index == path_->poses.size() - 1)
     {
         //check if the final marker in path is within the distance threshold
-        if (distance < distance_threshold)
+        if (distance < distance_threshold-0.2)
         {
+            RCLCPP_INFO(this->get_logger(), "Reached the final marker in path, stopping the robot.");
             // If the distance is less than the threshold update the dwa parameters to stop the robot
             custom_interfaces::msg::Dwa msg;
             msg.alpha = 0.0f;
             msg.beta = 0.0f;
             msg.gamma = 0.0f;
             msg.delta = 1.0f; // Set delta to 1.0 to stop the robot
-            this->robot_dwa_publisher_->publish(msg); 
-            RCLCPP_INFO(this->get_logger(), "Reached the final marker in path, stopping the robot.");
+            
+            this->robot_dwa_publisher_->publish(msg);
+            // Clear the path vector
+            this->path_->poses.clear();
+            return 0;
         }
         else
         {
             // If the distance is greater than the threshold, stay at the current index
             RCLCPP_INFO(this->get_logger(), "B Looking for marker %d", current_index);
-            return this->checkPathIndex(current_index, path_, distance_threshold);
+            return current_index;
         }
     }
     else
@@ -288,7 +292,7 @@ void ObservationsServerNode::observationsPublisherTimerCallback()
 void ObservationsServerNode::updateObservations()
 {
     // Update current marker index
-    this->path_index = this->checkPathIndex(this->path_index, this->path_, 0.3f); // TODO -> add distance threshold as parameter
+    this->path_index = this->checkPathIndex(this->path_index, this->path_, 0.5f); // TODO -> add distance threshold as parameter
     // 1)  Distance Goal
     this->observations.distance_goal = this->getMarkerDistance(this->path_->poses.size()-1, this->path_);
     // 2)  Distance to next path marker

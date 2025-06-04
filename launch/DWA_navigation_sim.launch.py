@@ -182,7 +182,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('galax_bringup'),
             'launch',
-            'launch_sim_robot.launch.py'
+            'keyboard_sim_robot.launch.py'
         )]))
     
     # Include the path planning service
