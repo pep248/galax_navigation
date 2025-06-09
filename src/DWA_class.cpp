@@ -44,7 +44,7 @@ DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
 
     // Initialize publishers
     this->cmd_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>(
-        "/diff_cont/cmd_vel_unstamped", 
+        "/cmd_vel_dwa", 
         rclcpp::QoS(1));
     this->dwa_map_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
         "/DWA/pointcloud2",
@@ -162,7 +162,6 @@ void DwaNode::dwaTimerCallback()
 
 geometry_msgs::msg::Twist DwaNode::calculateDWA()
 {
-    RCLCPP_WARN(get_logger(), "Calculating DWA...");
     
     // Get robot and DWA parameters
     auto& robot = *this->robot_parameters_instance_; // Reference to robot parameters
@@ -214,7 +213,7 @@ geometry_msgs::msg::Twist DwaNode::calculateDWA()
             }
 
             // Heading score
-            float heading_score = calculateHeadingScore();
+            float heading_score = calculateHeadingScore(x_sim, y_sim, theta_sim);
             // Obstacle score
             float obstacle_score = calculateObstacleScore(x_sim, y_sim);
             // Velocity score
@@ -276,21 +275,28 @@ geometry_msgs::msg::Twist DwaNode::calculateDWA()
     cmd_vel.linear.x = v_opt;
     cmd_vel.angular.z = omega_opt;
 
-    RCLCPP_WARN(get_logger(), "Calculated");
     return cmd_vel;
 }
 
 
-float DwaNode::calculateHeadingScore()
+float DwaNode::calculateHeadingScore(float x_sim, float y_sim, float theta_sim)
 {
-    // Use the normalized heading error from observations (already in [-1, 1])
-    // The closer to 0, the better aligned we are.
-    if (this->normalized_observations_) {
-        float heading_error = this->normalized_observations_->relative_direction_next_marker; // [-1, 1]
+    // Check if observations_ is valid and has a heading value
+    if (!std::isnan(this->observations_->relative_direction_next_marker) && !std::isnan(this->observations_->distance_next_marker))
+    {
+        // Calculate the x, y position of the next marker
+        float next_marker_x = this->observations_->distance_next_marker * std::cos(this->observations_->relative_direction_next_marker);
+        float next_marker_y = this->observations_->distance_next_marker * std::sin(this->observations_->relative_direction_next_marker);
+        // Calculate the heading error
+        float goal_heading = atan2(next_marker_y - y_sim, next_marker_x - x_sim);
+        float heading_diff = abs(angdiff(theta_sim, goal_heading));
         // Convert error to a score in [0, 1], where 1 is best alignment
-        return 1.0f - std::fabs(heading_error);
+        return (this->PI - std::abs(heading_diff)) / this->PI;
     }
-    return 0.0f;
+
+
+    RCLCPP_ERROR(get_logger(), "No valid heading information available in observations or normalized observations.");
+    return 0.0f; // Default score if no valid heading information is available
 }
 
 
@@ -327,5 +333,14 @@ float DwaNode::calculateObstacleScore(float x_sim, float y_sim)
     float score = std::min((min_distance - 0.4f) / (2.0f - 0.4f), 1.0f);
     return score;
 }
+
+
+float DwaNode::angdiff(float a, float b) {
+    float d = a - b;
+    while (d > this->PI) d -= 2.0f * this->PI;
+    while (d < -this->PI) d += 2.0f * this->PI;
+    return d;
+}
+
 
 

@@ -3,6 +3,7 @@
 
 // ===== Standard libraries =====
 #include <memory>
+#include <numbers>
 
 // ===== ROS-specific imports =====
 #include "rclcpp/rclcpp.hpp"
@@ -67,7 +68,6 @@ class DwaNode : public rclcpp::Node
 
         void get_params();
 
-
         // Subscribers
         rclcpp::Subscription<custom_interfaces::msg::Dwa>::SharedPtr dwa_subscription_;
         void updateDwaCallback(
@@ -103,8 +103,11 @@ class DwaNode : public rclcpp::Node
 
         // DWA Algorithm
         geometry_msgs::msg::Twist calculateDWA();
-        float calculateHeadingScore();
+        float calculateHeadingScore(float x_sim, float y_sim, float theta_sim);
         float calculateObstacleScore(float x_sim, float y_sim);
+        const float PI = 3.14159265358979323846f;
+        float angdiff(float a, float b);
+
 };
 
 

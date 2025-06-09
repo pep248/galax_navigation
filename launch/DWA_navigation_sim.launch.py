@@ -95,7 +95,7 @@ def generate_launch_description():
 
     declare_map_yaml_cmd = DeclareLaunchArgument(
         'map',
-        default_value=os.path.join(navigation_package_dir, 'map', 'corridor_map2.yaml'),
+        default_value=os.path.join(navigation_package_dir, 'map', 'empty_corridor_map.yaml'),
         description='Full path to map yaml file to load')
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
@@ -173,7 +173,7 @@ def generate_launch_description():
         output='screen',
     )
     delayed_static_tf = TimerAction(
-        period=15.0,
+        period=19.0,
         actions=[static_tf]
     )
     
@@ -193,7 +193,7 @@ def generate_launch_description():
             'path_planning_service_cpp.launch.py'
         )]))
     delayed_path_planning = TimerAction(
-        period=20.0,
+        period=23.0,
         actions=[path_planning]
     )
     
@@ -217,7 +217,7 @@ def generate_launch_description():
         output='screen',
     )
     delayed_observation_server = TimerAction(
-        period=20.0,
+        period=25.0,
         actions=[observation_server]
     )
     
@@ -229,7 +229,7 @@ def generate_launch_description():
         output='screen',
     )
     delayed_dwa = TimerAction(
-        period=20.0,
+        period=25.0,
         actions=[dwa_node]
     )
     
@@ -260,7 +260,7 @@ def generate_launch_description():
     ld.add_action(robot_bringup)
     ld.add_action(delayed_path_planning)
     ld.add_action(rviz_node)
-    # ld.add_action(delayed_observation_server)
+    ld.add_action(delayed_observation_server)
     ld.add_action(delayed_dwa)
     
 

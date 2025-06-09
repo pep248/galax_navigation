@@ -36,12 +36,10 @@ ament_auto_find_build_dependencies()
 ament_auto_add_executable(DWA_node
   src/DWA_node.cpp
   src/DWA_class.cpp
-  # src/observations_server_class.cpp
 )
 # DWA Node
 ament_auto_add_executable(observations_server_node
   src/observations_server_node.cpp
-  # src/DWA_class.cpp
   src/observations_server_class.cpp
 )
 # Generate Parameter Library
@@ -59,6 +57,15 @@ install(TARGETS DWA_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
+target_link_libraries(observations_server_node
+  dwa_parameters_file
+)
+target_include_directories(observations_server_node
+  PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/dwa_parameters_file/include
+)
+install(TARGETS observations_server_node
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 # PYTHON
 # Install Python modules

@@ -1,6 +1,6 @@
 # galax_navigation
 
-ros2 run nav2_map_server map_saver_cli -f uni_map2
+ros2 run nav2_map_server map_saver_cli -f empty_corridor_map
 
 
 sudo apt-get install cpulimit

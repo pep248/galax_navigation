@@ -7,7 +7,12 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
  : Node(node_name)
 {
     RCLCPP_INFO(get_logger(), "ObservationsServerNode initialized");
-    
+    // Parameters
+    this->file_parameters_listener_ = std::make_shared<dwa_parameters_file::ParamListener>(this->get_node_parameters_interface());
+    this->file_parameters_ = std::make_shared<dwa_parameters_file::Params>(this->file_parameters_listener_->get_params());
+
+    this->get_params();
+
     // Initialize transform listener
     this->tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     this->tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -64,6 +69,12 @@ void ObservationsServerNode::start()
     
 }
 
+void ObservationsServerNode::get_params()
+{
+    // thresholds params
+    this->goal_reached_threshold = this->file_parameters_->threshold_params.goal_reached_threshold;
+    this->marker_reached_threshold = this->file_parameters_->threshold_params.marker_reached_threshold;
+}
 
 // Robot pose callback
 void ObservationsServerNode::robotPoseCallback()
@@ -110,7 +121,7 @@ void ObservationsServerNode::pathCallback(const nav_msgs::msg::Path::SharedPtr m
     if (path_->poses.size() > 0)
     {
         this->path_index = 0;
-        this->path_index = this->checkPathIndex(this->path_index, this->path_, 0.5f); // TODO -> add distance threshold as parameter
+        this->path_index = this->checkPathIndex(this->path_index, this->path_, this->marker_reached_threshold); // TODO -> add distance threshold as parameter
     }
     this->path_received = true;
 }
@@ -139,14 +150,13 @@ int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Pat
     // If the distance is greater than the threshold, stay at the current index
     else if (distance >= distance_threshold && current_index < path_->poses.size() - 1)
     {
-        RCLCPP_INFO(this->get_logger(), "C Looking for marker %d", current_index);
         return current_index;
     }
     // If the current index is the last index, check if the distance is less than the threshold
     else if (current_index == path_->poses.size() - 1)
     {
         //check if the final marker in path is within the distance threshold
-        if (distance < distance_threshold-0.2)
+        if (distance < this->goal_reached_threshold)
         {
             RCLCPP_INFO(this->get_logger(), "Reached the final marker in path, stopping the robot.");
             // If the distance is less than the threshold update the dwa parameters to stop the robot
@@ -164,13 +174,11 @@ int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Pat
         else
         {
             // If the distance is greater than the threshold, stay at the current index
-            RCLCPP_INFO(this->get_logger(), "B Looking for marker %d", current_index);
             return current_index;
         }
     }
     else
     {
-        RCLCPP_INFO(this->get_logger(), "A Looking for marker %d", current_index);
         return current_index;
     }
     return current_index; // fallback
@@ -291,8 +299,14 @@ void ObservationsServerNode::observationsPublisherTimerCallback()
 
 void ObservationsServerNode::updateObservations()
 {
+    // Prevent out-of-bounds access if path is empty
+    if (!this->path_ || this->path_->poses.empty()) {
+        RCLCPP_WARN(this->get_logger(), "Path is empty, skipping observation update.");
+        return;
+    }
+
     // Update current marker index
-    this->path_index = this->checkPathIndex(this->path_index, this->path_, 0.5f); // TODO -> add distance threshold as parameter
+    this->path_index = this->checkPathIndex(this->path_index, this->path_, this->marker_reached_threshold); // TODO -> add distance threshold as parameter
     // 1)  Distance Goal
     this->observations.distance_goal = this->getMarkerDistance(this->path_->poses.size()-1, this->path_);
     // 2)  Distance to next path marker

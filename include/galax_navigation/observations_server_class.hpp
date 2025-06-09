@@ -24,6 +24,7 @@
 // ===== Custom parameters and project-specific headers =====
 #include <custom_interfaces/msg/observations.hpp>
 #include <custom_interfaces/msg/dwa.hpp>
+#include <galax_navigation/dwa_parameters_file.hpp>
 #include <galax_navigation/observations_class.hpp>
 
 
@@ -35,9 +36,19 @@ class ObservationsServerNode : public rclcpp::Node
         void start();
 
     private:
+
         // Observations
         Observations observations;
         Observations normalized_observations;
+
+        // Parameters
+        std::shared_ptr<dwa_parameters_file::ParamListener> file_parameters_listener_;
+        std::shared_ptr<dwa_parameters_file::Params> file_parameters_;
+
+        float goal_reached_threshold;
+        float marker_reached_threshold;
+
+        void get_params();
 
         // Robot pose
         std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
