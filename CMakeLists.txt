@@ -37,16 +37,20 @@ ament_auto_add_executable(DWA_node
   src/DWA_node.cpp
   src/DWA_class.cpp
 )
-# DWA Node
+# Observations Server Node
 ament_auto_add_executable(observations_server_node
   src/observations_server_node.cpp
   src/observations_server_class.cpp
 )
+
+
 # Generate Parameter Library
 # DWA parameters
 generate_parameter_library(dwa_parameters_file # cmake target name for the parameter library
   config/dwa_parameters.yaml # path to input yaml file
 )
+
+# Parameters to the DWA node
 target_link_libraries(DWA_node
   dwa_parameters_file
 )
@@ -57,6 +61,7 @@ install(TARGETS DWA_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# Parameters to the observations server node
 target_link_libraries(observations_server_node
   dwa_parameters_file
 )
@@ -67,12 +72,14 @@ install(TARGETS observations_server_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
+
 # PYTHON
 # Install Python modules
 ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   scripts/initial_pose_publisher.py
+  scripts/TD3_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -81,6 +88,7 @@ install(PROGRAMS
 # Install config dependencies
 install(
   DIRECTORY
+    agent
     config
     rviz
     map
