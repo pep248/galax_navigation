@@ -54,9 +54,10 @@ ObservationsServerNode::ObservationsServerNode(const std::string & node_name)
     this->normalized_observations_publisher_ = this->create_publisher<custom_interfaces::msg::Observations>(
         "/normalized_observations",
         1);
-    this->robot_dwa_publisher_ = this->create_publisher<custom_interfaces::msg::Dwa>(
-        "/dwa_parameters",
+    this->goal_reached_publisher_ = this->create_publisher<std_msgs::msg::Bool>(
+        "/goal_reached",
         1);
+
 
     this->observations_publisher_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
@@ -69,11 +70,18 @@ void ObservationsServerNode::start()
     
 }
 
+
 void ObservationsServerNode::get_params()
 {
     // thresholds params
     this->goal_reached_threshold = this->file_parameters_->threshold_params.goal_reached_threshold;
     this->marker_reached_threshold = this->file_parameters_->threshold_params.marker_reached_threshold;
+
+    // normalization params
+    this->lidar_max_relevant_range = this->file_parameters_->threshold_params.lidar_max_relevant_range;
+    this->marker_max_separation = this->file_parameters_->threshold_params.marker_max_separation;
+    this->robot_max_velocity = this->file_parameters_->robot_constant_params.max_speed;
+    this->robot_max_omega = this->file_parameters_->robot_constant_params.max_omega;
 }
 
 // Robot pose callback
@@ -110,6 +118,8 @@ void ObservationsServerNode::goalCallback(const geometry_msgs::msg::PoseStamped:
 {
     this->goal_pose.x = msg->pose.position.x;
     this->goal_pose.y = msg->pose.position.y;
+    this->goal_distance_from_origin = std::sqrt(std::pow(this->goal_pose.x - this->robot_pose.x, 2) +
+                                                std::pow(this->goal_pose.y - this->robot_pose.y, 2));
     this->goal_received = true;
 }
 
@@ -120,6 +130,11 @@ void ObservationsServerNode::pathCallback(const nav_msgs::msg::Path::SharedPtr m
     this->path_ = msg;
     if (path_->poses.size() > 0)
     {
+        // Reset the goal reached status
+        std_msgs::msg::Bool goal_reached_msg;
+        goal_reached_msg.data = false; // Reset goal reached status
+        this->goal_reached_publisher_->publish(goal_reached_msg);
+        // Reset the path index
         this->path_index = 0;
         this->path_index = this->checkPathIndex(this->path_index, this->path_, this->marker_reached_threshold); // TODO -> add distance threshold as parameter
     }
@@ -159,14 +174,11 @@ int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Pat
         if (distance < this->goal_reached_threshold)
         {
             RCLCPP_INFO(this->get_logger(), "Reached the final marker in path, stopping the robot.");
-            // If the distance is less than the threshold update the dwa parameters to stop the robot
-            custom_interfaces::msg::Dwa msg;
-            msg.alpha = 0.0f;
-            msg.beta = 0.0f;
-            msg.gamma = 0.0f;
-            msg.delta = 1.0f; // Set delta to 1.0 to stop the robot
+            // Reset the oder nodes
+            std_msgs::msg::Bool goal_reached_msg;
+            goal_reached_msg.data = true; // Reset goal reached status
+            this->goal_reached_publisher_->publish(goal_reached_msg);
             
-            this->robot_dwa_publisher_->publish(msg);
             // Clear the path vector
             this->path_->poses.clear();
             return 0;
@@ -324,38 +336,31 @@ void ObservationsServerNode::updateObservations()
 
 void ObservationsServerNode::normalizeObservations()
 {
-    // Example values, replace with your actual robot/environment parameters
-    float goal_distance_from_origin = std::sqrt(std::pow(this->goal_pose.x, 2) + std::pow(this->goal_pose.y, 2));
-    float marker_max_separation = 3.0f; // Set this to your actual value
-    float v_max = 1.0f;                 // Set this to your actual value
-    float omega_max = 1.2f;             // Set this to your actual value
-    float lidar_max_range = 30.0f;      // Set this to your actual value
-
     // 1) Distance to goal [0,1]
-    if (goal_distance_from_origin > 0.0f)
+    if (this->goal_distance_from_origin > 0.0f)
         this->normalized_observations.distance_goal = std::min(this->observations.distance_goal / goal_distance_from_origin, 1.0f);
     else
         this->normalized_observations.distance_goal = 0.0f;
 
     // 2) Distance to next path marker [0,1]
-    this->normalized_observations.distance_next_marker = std::min(this->observations.distance_next_marker / marker_max_separation, 1.0f);
+    this->normalized_observations.distance_next_marker = std::min(this->observations.distance_next_marker / this->marker_max_separation, 1.0f);
 
     // 3) Relative direction to next marker [-1,1]
     this->normalized_observations.relative_direction_next_marker = this->observations.relative_direction_next_marker / static_cast<float>(M_PI);
 
     // 4) Linear velocity [0,1]
-    this->normalized_observations.linear_velocity = std::min(this->observations.linear_velocity / v_max, 1.0f);
+    this->normalized_observations.linear_velocity = std::min(this->observations.linear_velocity / this->robot_max_velocity, 1.0f);
 
     // 5) Angular velocity [-1, 1]
     this->normalized_observations.angular_velocity =
-        std::max(std::min(this->observations.angular_velocity / omega_max, 1.0f), -1.0f);
+        std::max(std::min(this->observations.angular_velocity / this->robot_max_omega, 1.0f), -1.0f);
 
     // 6-15) Closest distance sectors [0,1]
     this->normalized_observations.closest_distance_sector.resize(this->observations.closest_distance_sector.size());
     for (size_t i = 0; i < this->observations.closest_distance_sector.size(); ++i)
     {
         this->normalized_observations.closest_distance_sector[i] =
-            std::min(this->observations.closest_distance_sector[i] / (lidar_max_range/6.0f), 1.0f);
+            std::min(this->observations.closest_distance_sector[i] / (this->lidar_max_relevant_range), 1.0f);
     }
 }
 

@@ -100,7 +100,7 @@ def generate_launch_description():
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time',
-        default_value='false',
+        default_value='true',
         description='Use simulation (Gazebo) clock if true')
 
     declare_params_file_cmd = DeclareLaunchArgument(
@@ -171,6 +171,7 @@ def generate_launch_description():
         executable='initial_pose_publisher.py',
         name='initial_pose_publisher',
         output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
     )
     delayed_static_tf = TimerAction(
         period=19.0,
@@ -183,7 +184,9 @@ def generate_launch_description():
             get_package_share_directory('galax_bringup'),
             'launch',
             'keyboard_sim_robot.launch.py'
-        )]))
+        )]),
+        launch_arguments={'use_sim_time': use_sim_time}.items()
+    )
     
     # Include the path planning service
     path_planning = IncludeLaunchDescription(
@@ -191,9 +194,11 @@ def generate_launch_description():
             get_package_share_directory('path_planning_package'),
             'launch', 
             'path_planning_service_cpp.launch.py'
-        )]))
+        )]),
+        launch_arguments={'use_sim_time': use_sim_time}.items()
+    )
     delayed_path_planning = TimerAction(
-        period=23.0,
+        period=25.0,
         actions=[path_planning]
     )
     
@@ -206,7 +211,8 @@ def generate_launch_description():
         arguments=['-d', os.path.join(
             navigation_package_dir,
             'rviz',  # Folder containing RViz config (optional)
-            'DWA_navigation_2.rviz')]  # Optional pre-saved RViz config file
+            'DWA_navigation_2.rviz')],  # Optional pre-saved RViz config file
+        parameters=[{'use_sim_time': use_sim_time}]
     )
     
     # Start the observation server node
@@ -215,9 +221,10 @@ def generate_launch_description():
         executable='observations_server_node',
         name='observations_server_node',
         output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
     )
     delayed_observation_server = TimerAction(
-        period=25.0,
+        period=28.0,
         actions=[observation_server]
     )
     
@@ -227,12 +234,12 @@ def generate_launch_description():
         executable='DWA_node',
         name='DWA_node',
         output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
     )
     delayed_dwa = TimerAction(
-        period=25.0,
+        period=28.0,
         actions=[dwa_node]
     )
-    
 
 
     # Create the launch description and populate

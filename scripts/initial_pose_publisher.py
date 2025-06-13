@@ -10,6 +10,7 @@ class InitialPosePublisher(Node):
         pub = self.create_publisher(PoseWithCovarianceStamped, '/initialpose', 1)
         msg = PoseWithCovarianceStamped()
         msg.header.frame_id = 'map'
+        msg.header.stamp = self.get_clock().now().to_msg()
         msg.pose.pose.position.x = 0.0
         msg.pose.pose.position.y = 0.0
         msg.pose.pose.position.z = 0.0
@@ -19,7 +20,7 @@ class InitialPosePublisher(Node):
         msg.pose.pose.orientation.w = 1.0
         msg.pose.covariance = [0.0]*36
         # Publish a few times to ensure delivery
-        for _ in range(10):
+        for _ in range(20):
             pub.publish(msg)
             self.get_logger().info('Published initial pose to /initialpose')
             rclpy.spin_once(self, timeout_sec=0.1)

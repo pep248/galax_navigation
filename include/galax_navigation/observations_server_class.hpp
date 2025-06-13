@@ -14,6 +14,8 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
+#include "std_msgs/msg/bool.hpp"
+
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
@@ -23,7 +25,6 @@
 
 // ===== Custom parameters and project-specific headers =====
 #include <custom_interfaces/msg/observations.hpp>
-#include <custom_interfaces/msg/dwa.hpp>
 #include <galax_navigation/dwa_parameters_file.hpp>
 #include <galax_navigation/observations_class.hpp>
 
@@ -47,6 +48,13 @@ class ObservationsServerNode : public rclcpp::Node
 
         float goal_reached_threshold;
         float marker_reached_threshold;
+
+        float goal_distance_from_origin;
+
+        float lidar_max_relevant_range;
+        float marker_max_separation;
+        float robot_max_velocity;
+        float robot_max_omega;
 
         void get_params();
 
@@ -108,7 +116,10 @@ class ObservationsServerNode : public rclcpp::Node
         // Publishers
         rclcpp::Publisher<custom_interfaces::msg::Observations>::SharedPtr observations_publisher_;
         rclcpp::Publisher<custom_interfaces::msg::Observations>::SharedPtr normalized_observations_publisher_;
-        rclcpp::Publisher<custom_interfaces::msg::Dwa>::SharedPtr robot_dwa_publisher_;
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr goal_reached_publisher_;
+
+
+        // Timer for publishing observations
         rclcpp::TimerBase::SharedPtr observations_publisher_timer_;
         bool all_data_received = false;
         void observationsPublisherTimerCallback();

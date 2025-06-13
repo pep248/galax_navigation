@@ -17,6 +17,7 @@
 #include "pcl_conversions/pcl_conversions.h"
 #include "pcl/point_cloud.h"
 #include "pcl/point_types.h"
+#include "std_msgs/msg/bool.hpp"
 
 
 // ===== Custom parameters and project-specific headers =====
@@ -88,6 +89,11 @@ class DwaNode : public rclcpp::Node
             const sensor_msgs::msg::LaserScan::SharedPtr msg);
         bool lidar_data_ready_ = false;
         sensor_msgs::msg::LaserScan::SharedPtr lidar_data_;
+
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr goal_reached_subscription_;
+        void goalReachedCallback(
+            const std_msgs::msg::Bool::SharedPtr msg);
+        bool goal_reached = false;
 
 
         // Publishers

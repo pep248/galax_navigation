@@ -36,6 +36,11 @@ DwaNode::DwaNode(const std::string & node_name) : Node(node_name)
         "/scan", 
         1,
         std::bind(&DwaNode::lidarCallback, this, std::placeholders::_1));
+    this->goal_reached_subscription_ = this->create_subscription<std_msgs::msg::Bool>(
+        "/goal_reached", 
+        1,
+        std::bind(&DwaNode::goalReachedCallback, this, std::placeholders::_1));
+
 
     // Initialize timer for DWA calculations
     this->dwa_timer_ = this->create_wall_timer(
@@ -89,8 +94,8 @@ void DwaNode::updateDwaCallback(const custom_interfaces::msg::Dwa::SharedPtr msg
     this->dwa_parameters_instance_->beta         = msg->beta;
     this->dwa_parameters_instance_->gamma        = msg->gamma;
     this->dwa_parameters_instance_->delta        = msg->delta;
-    RCLCPP_INFO(get_logger(), "DWA parameters updated: alpha=%.2f, beta=%.2f, gamma=%.2f, delta=%.2f",
-                msg->alpha, msg->beta, msg->gamma, msg->delta);
+    // RCLCPP_INFO(get_logger(), "DWA parameters updated: alpha=%.2f, beta=%.2f, gamma=%.2f, delta=%.2f",
+    //             msg->alpha, msg->beta, msg->gamma, msg->delta);
     
 }
 
@@ -116,21 +121,45 @@ void DwaNode::lidarCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 }
 
 
+void DwaNode::goalReachedCallback(const std_msgs::msg::Bool::SharedPtr msg)
+{
+    if (msg->data)
+    {
+        RCLCPP_INFO(this->get_logger(), "Goal reached, stopping DWA calculations.");
+        this->goal_reached = true;
+        this->cmd_publisher_->publish(geometry_msgs::msg::Twist()); // Stop the robot
+    }
+    else
+    {
+        RCLCPP_WARN(this->get_logger(), "Goal not reached yet.");
+        this->goal_reached = false;
+    }
+}
+
 // DWA
 void DwaNode::dwaTimerCallback()
 {
 
     if (this->all_data_received == true)
     {
-        // Calculate the DWA command
-        geometry_msgs::msg::Twist cmd_vel = this->calculateDWA();
+        if (this->goal_reached)
+        {
+            this->cmd_publisher_->publish(geometry_msgs::msg::Twist()); // Stop the robot
+            return;
+        }
+        else
+        {
+            // Calculate the DWA command
+            geometry_msgs::msg::Twist cmd_vel = this->calculateDWA();
 
-        // TODO
-        // Implement a velocity smoother here
-        // For now, just publish the command directly
+            // TODO
+            // Implement a velocity smoother here
+            // For now, just publish the command directly
 
-        // Publish the command
-        this->cmd_publisher_->publish(cmd_vel);
+            // Publish the command
+            this->cmd_publisher_->publish(cmd_vel);
+        }
+
     }
     else
     {
