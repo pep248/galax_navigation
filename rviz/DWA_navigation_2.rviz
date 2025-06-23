@@ -7,12 +7,12 @@ Panels:
         - /Global Options1
         - /Status1
         - /TF1/Frames1
+        - /LaserScan1
         - /LaserScan1/Topic1
         - /Map1/Topic1
         - /Map1/Update Topic1
-        - /Path1
-        - /PointCloud21
         - /PointCloud21/Topic1
+        - /Path2
       Splitter Ratio: 0.4307228922843933
     Tree Height: 716
   - Class: rviz_common/Selection
@@ -32,7 +32,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud2
+    SyncSource: LaserScan
 Visualization Manager:
   Class: ""
   Displays:
@@ -72,15 +72,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        hokuyo_laser:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        hokuyo_laser_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         galax_back_sonar:
           Alpha: 1
           Show Axes: false
@@ -105,6 +96,11 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        galax_chassis:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         galax_front_sonar:
           Alpha: 1
           Show Axes: false
@@ -120,7 +116,7 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        galax_real_base_link:
+        galax_passive_caster_wheel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -136,6 +132,15 @@ Visualization Manager:
           Show Trail: false
           Value: true
         galax_top_plate:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        hokuyo_laser:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        hokuyo_laser_mount:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -153,12 +158,6 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        hokuyo_laser:
-          Value: true
-        hokuyo_laser_mount:
-          Value: true
-        map:
-          Value: true
         galax_back_sonar:
           Value: false
         galax_base_link:
@@ -169,6 +168,8 @@ Visualization Manager:
           Value: false
         galax_caster_wheel:
           Value: true
+        galax_chassis:
+          Value: true
         galax_front_sonar:
           Value: false
         galax_left_hub:
@@ -177,13 +178,19 @@ Visualization Manager:
           Value: true
         galax_odom:
           Value: true
-        galax_real_base_link:
+        galax_passive_caster_wheel:
           Value: true
         galax_right_hub:
           Value: false
         galax_right_wheel:
           Value: true
         galax_top_plate:
+          Value: true
+        hokuyo_laser:
+          Value: true
+        hokuyo_laser_mount:
+          Value: true
+        map:
           Value: true
       Marker Scale: 1
       Name: TF
@@ -194,17 +201,26 @@ Visualization Manager:
         map:
           galax_odom:
             galax_base_link:
-              galax_real_base_link:
+              galax_chassis:
                 galax_back_sonar:
+                  {}
+                galax_caster_swivel:
+                  galax_caster_hubcap:
+                    {}
+                galax_caster_wheel:
                   {}
                 galax_front_sonar:
                   {}
                 galax_left_hub:
-                  galax_left_wheel:
-                    {}
+                  {}
+                galax_left_wheel:
+                  {}
+                galax_passive_caster_wheel:
+                  {}
                 galax_right_hub:
-                  galax_right_wheel:
-                    {}
+                  {}
+                galax_right_wheel:
+                  {}
                 galax_top_plate:
                   hokuyo_laser_mount:
                     hokuyo_laser:
@@ -224,16 +240,16 @@ Visualization Manager:
       Color Transformer: Intensity
       Decay Time: 0
       Enabled: true
-      Invert Rainbow: false
+      Invert Rainbow: true
       Max Color: 255; 255; 255
       Max Intensity: 0
-      Min Color: 0; 0; 0
+      Min Color: 255; 255; 23
       Min Intensity: 0
       Name: LaserScan
       Position Transformer: XYZ
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.05000000074505806
+      Size (m): 0.029999999329447746
       Style: Flat Squares
       Topic:
         Depth: 5
@@ -243,7 +259,7 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /scan
       Use Fixed Frame: true
-      Use rainbow: true
+      Use rainbow: false
       Value: true
     - Alpha: 0.699999988079071
       Class: rviz_default_plugins/Map
@@ -328,6 +344,34 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz_default_plugins/Path
+      Color: 0; 85; 255
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_movement
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -373,34 +417,29 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz_default_plugins/Orbit
-      Distance: 5.948530197143555
+      Angle: 0
+      Class: rviz_default_plugins/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
-      Focal Point:
-        X: -0.5750156044960022
-        Y: -0.45288315415382385
-        Z: 1.2362072467803955
-      Focal Shape Fixed Size: true
-      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7521217465400696
+      Scale: 129.9671630859375
       Target Frame: <Fixed Frame>
-      Value: Orbit (rviz)
-      Yaw: 3.519566774368286
+      Value: TopDownOrtho (rviz_default_plugins)
+      X: 1.6545238494873047
+      Y: 0.3881748616695404
     Saved: ~
 Window Geometry:
   Displays:
-    collapsed: false
+    collapsed: true
   Height: 1007
-  Hide Left Dock: false
-  Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000029a00000355fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730200000780000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b00000355000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f00000355fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003b00000355000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007740000003efc0100000002fb0000000800540069006d00650100000000000007740000025300fffffffb0000000800540069006d00650100000000000004500000000000000000000003bf0000035500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Hide Left Dock: true
+  Hide Right Dock: true
+  QMainWindow State: 000000ff00000000fd00000004000000000000027600000355fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730200000780000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000003b00000355000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010000000355fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b00000355000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000003b40000003efc0100000002fb0000000800540069006d00650100000000000003b40000025300fffffffb0000000800540069006d00650100000000000004500000000000000000000003b40000035500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -408,7 +447,7 @@ Window Geometry:
   Tool Properties:
     collapsed: false
   Views:
-    collapsed: false
-  Width: 1908
-  X: -32
-  Y: -33
+    collapsed: true
+  Width: 948
+  X: 2848
+  Y: -32

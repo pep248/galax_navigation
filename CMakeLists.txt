@@ -80,6 +80,7 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   scripts/initial_pose_publisher.py
   scripts/TD3_node.py
+  scripts/path_plotter.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

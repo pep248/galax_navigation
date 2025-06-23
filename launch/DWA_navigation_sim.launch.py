@@ -240,6 +240,19 @@ def generate_launch_description():
         period=28.0,
         actions=[dwa_node]
     )
+    
+    # Start the path plotter node
+    path_plotter_node = Node(
+        package='galax_navigation',
+        executable='path_plotter.py',
+        name='path_plotter',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
+    )
+    delayed_path_plotter_node = TimerAction(
+        period=28.0,
+        actions=[path_plotter_node]
+    )
 
 
     # Create the launch description and populate
@@ -269,6 +282,7 @@ def generate_launch_description():
     ld.add_action(rviz_node)
     ld.add_action(delayed_observation_server)
     ld.add_action(delayed_dwa)
+    ld.add_action(delayed_path_plotter_node)
     
 
     return ld
