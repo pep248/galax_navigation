@@ -87,6 +87,7 @@ class ObservationsServerNode : public rclcpp::Node
         int checkPathIndex(int current_index, nav_msgs::msg::Path::SharedPtr path_, float distance_threshold = 0.3f); // TODO -> add distance threshold as parameter
         float getMarkerDistance(int index, nav_msgs::msg::Path::SharedPtr path_);
         float getMarkerOrientation(int index, nav_msgs::msg::Path::SharedPtr path_);
+        const float PI = 3.14159265358979323846f;
         
 
         // 4) Linear velocity

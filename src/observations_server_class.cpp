@@ -199,6 +199,11 @@ int ObservationsServerNode::checkPathIndex(int current_index, nav_msgs::msg::Pat
 
 float ObservationsServerNode::getMarkerDistance(int index, nav_msgs::msg::Path::SharedPtr path_)
 {
+    if (!path_ || path_->poses.empty() || index < 0 || index >= static_cast<int>(path_->poses.size())) {
+        RCLCPP_WARN(this->get_logger(), "getMarkerDistance: Invalid index %d for path size %zu", index, path_ ? path_->poses.size() : 0);
+        return 0.0f;
+    }
+
     // Get the next pose in the path
     geometry_msgs::msg::PoseStamped next_pose_stamped = path_->poses[index];
     
@@ -211,18 +216,19 @@ float ObservationsServerNode::getMarkerDistance(int index, nav_msgs::msg::Path::
 
 float ObservationsServerNode::getMarkerOrientation(int index, nav_msgs::msg::Path::SharedPtr path_)
 {
-// Get the current pose of the robot
     auto& robot_pose = this->robot_pose;
-
-    // Get the next pose in the path
     geometry_msgs::msg::PoseStamped next_pose_stamped = path_->poses[index];
 
-    // Calculate the orientation to the next pose
     float absolute_orientation = std::atan2(next_pose_stamped.pose.position.y - robot_pose.y,
                                             next_pose_stamped.pose.position.x - robot_pose.x);
 
-    // Calculate the relative orientation
     float relative_orientation = absolute_orientation - robot_pose.theta;
+
+    // Normalize to [-PI, PI]
+    while (relative_orientation > this->PI)
+        relative_orientation -= 2.0f * this->PI;
+    while (relative_orientation < -this->PI)
+        relative_orientation += 2.0f * this->PI;
 
     return relative_orientation;
 }
@@ -336,31 +342,35 @@ void ObservationsServerNode::updateObservations()
 
 void ObservationsServerNode::normalizeObservations()
 {
+    auto round2 = [](float val) {
+        return std::round(val * 100.0f) / 100.0f;
+    };
+
     // 1) Distance to goal [0,1]
     if (this->goal_distance_from_origin > 0.0f)
-        this->normalized_observations.distance_goal = std::min(this->observations.distance_goal / goal_distance_from_origin, 1.0f);
+        this->normalized_observations.distance_goal = round2(std::min(this->observations.distance_goal / goal_distance_from_origin, 1.0f));
     else
         this->normalized_observations.distance_goal = 0.0f;
 
     // 2) Distance to next path marker [0,1]
-    this->normalized_observations.distance_next_marker = std::min(this->observations.distance_next_marker / this->marker_max_separation, 1.0f);
+    this->normalized_observations.distance_next_marker = round2(std::min(this->observations.distance_next_marker / this->marker_max_separation, 1.0f));
 
     // 3) Relative direction to next marker [-1,1]
-    this->normalized_observations.relative_direction_next_marker = this->observations.relative_direction_next_marker / static_cast<float>(M_PI);
+    this->normalized_observations.relative_direction_next_marker = round2(this->observations.relative_direction_next_marker / static_cast<float>(M_PI));
 
     // 4) Linear velocity [0,1]
-    this->normalized_observations.linear_velocity = std::min(this->observations.linear_velocity / this->robot_max_velocity, 1.0f);
+    this->normalized_observations.linear_velocity = round2(std::min(this->observations.linear_velocity / this->robot_max_velocity, 1.0f));
 
     // 5) Angular velocity [-1, 1]
     this->normalized_observations.angular_velocity =
-        std::max(std::min(this->observations.angular_velocity / this->robot_max_omega, 1.0f), -1.0f);
+        round2(std::max(std::min(this->observations.angular_velocity / this->robot_max_omega, 1.0f), -1.0f));
 
     // 6-15) Closest distance sectors [0,1]
     this->normalized_observations.closest_distance_sector.resize(this->observations.closest_distance_sector.size());
     for (size_t i = 0; i < this->observations.closest_distance_sector.size(); ++i)
     {
         this->normalized_observations.closest_distance_sector[i] =
-            std::min(this->observations.closest_distance_sector[i] / (this->lidar_max_relevant_range), 1.0f);
+            round2(std::min(this->observations.closest_distance_sector[i] / (this->lidar_max_relevant_range), 1.0f));
     }
 }
 
