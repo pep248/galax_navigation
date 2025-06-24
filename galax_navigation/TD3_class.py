@@ -19,7 +19,7 @@ class MyTD3Class(Node):
         super().__init__('td3_policy_node')
         
         package_share = get_package_share_directory('galax_navigation')
-        onnx_path = os.path.join(package_share, 'agent', 'td3_actor.onnx')
+        onnx_path = os.path.join(package_share, 'agent', 'td3_actor_2.onnx')
         self.session = ort.InferenceSession(
             onnx_path,
             providers=['CPUExecutionProvider']
@@ -68,12 +68,12 @@ class MyTD3Class(Node):
         # Convert Observations msg to numpy array (adjust field order as needed)
         obs = self.latest_obs
         obs_vec = np.array([
-            obs.distance_goal,
-            obs.distance_next_marker,
-            obs.relative_direction_next_marker,
-            obs.linear_velocity,
-            obs.angular_velocity,
-            *obs.closest_distance_sector  # unpack the list
+            round(obs.distance_goal, 2),
+            round(obs.distance_next_marker, 2),
+            round(obs.relative_direction_next_marker, 2),
+            round(obs.linear_velocity, 2),
+            round(obs.angular_velocity, 2),
+            *(round(x, 2) for x in obs.closest_distance_sector)  # unpack the list, rounded
         ], dtype=np.float32).reshape(1, -1)  # shape: (1, obs_dim)
 
         # Run ONNX inference
