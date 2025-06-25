@@ -17,13 +17,12 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import (DeclareLaunchArgument, GroupAction,
-                            IncludeLaunchDescription, SetEnvironmentVariable)
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription, SetEnvironmentVariable, TimerAction
+                            
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PythonExpression
-from launch_ros.actions import Node
-from launch_ros.actions import PushRosNamespace
+from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.descriptions import ParameterFile
 from nav2_common.launch import RewrittenYaml, ReplaceString
 
@@ -126,7 +125,7 @@ def generate_launch_description():
         description='log level')
 
     # Specify the actions
-    bringup_cmd_group = GroupAction([
+    bringup_navigation_group = GroupAction([
         PushRosNamespace(
             condition=IfCondition(use_namespace),
             namespace=namespace),
@@ -162,27 +161,35 @@ def generate_launch_description():
                               'use_composition': use_composition,
                               'use_respawn': use_respawn,
                               'container_name': 'nav2_container'}.items()),
-
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(os.path.join(launch_dir, 'navigation_launch.py')),
-            launch_arguments={'namespace': namespace,
-                              'use_sim_time': use_sim_time,
-                              'autostart': autostart,
-                              'params_file': params_file,
-                              'use_composition': use_composition,
-                              'use_respawn': use_respawn,
-                              'container_name': 'nav2_container'}.items()),
         
         
     ])
-    
+       
+    # Initialize the robot
     robot_bringup = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('galax_bringup'),
             'launch',
             'keyboard_real_robot.launch.py'
-        )]))
+        )]),
+        launch_arguments={'use_sim_time': use_sim_time}.items()
+    )
     
+    # Include the path planning service
+    path_planning = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory('path_planning_package'),
+            'launch', 
+            'path_planning_service_cpp.launch.py'
+        )]),
+        launch_arguments={'use_sim_time': use_sim_time}.items()
+    )
+    delayed_path_planning = TimerAction(
+        period=25.0,
+        actions=[path_planning]
+    )
+    
+    # Include RViz for visualization
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
@@ -191,8 +198,49 @@ def generate_launch_description():
         arguments=['-d', os.path.join(
             navigation_package_dir,
             'rviz',  # Folder containing RViz config (optional)
-            'navigation.rviz')]  # Optional pre-saved RViz config file
+            'DWA_navigation_2.rviz')],  # Optional pre-saved RViz config file
+        parameters=[{'use_sim_time': use_sim_time}]
     )
+    
+    # Start the observation server node
+    observation_server = Node(
+        package='galax_navigation',
+        executable='observations_server_node',
+        name='observations_server_node',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
+    )
+    delayed_observation_server = TimerAction(
+        period=28.0,
+        actions=[observation_server]
+    )
+    
+    # Start the navigation DWA node
+    dwa_node = Node(
+        package='galax_navigation',
+        executable='DWA_node',
+        name='DWA_node',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
+    )
+    delayed_dwa = TimerAction(
+        period=28.0,
+        actions=[dwa_node]
+    )
+    
+    # Start the path plotter node
+    path_plotter_node = Node(
+        package='galax_navigation',
+        executable='path_plotter.py',
+        name='path_plotter',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
+    )
+    delayed_path_plotter_node = TimerAction(
+        period=28.0,
+        actions=[path_plotter_node]
+    )
+
 
     # Create the launch description and populate
     ld = LaunchDescription()
@@ -213,9 +261,14 @@ def generate_launch_description():
     ld.add_action(declare_log_level_cmd)
 
     # Add the actions to launch all of the navigation nodes
-    ld.add_action(bringup_cmd_group)
+    ld.add_action(bringup_navigation_group)
     
     ld.add_action(robot_bringup)
+    ld.add_action(delayed_path_planning)
     ld.add_action(rviz_node)
+    ld.add_action(delayed_observation_server)
+    ld.add_action(delayed_dwa)
+    ld.add_action(delayed_path_plotter_node)
+    
 
     return ld
